@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Models\AsrJob;
 use App\Models\BehaviorBaseline;
 use App\Models\BehaviorEvent;
 use App\Models\DataDeletionRequest;
@@ -15,7 +16,11 @@ use Illuminate\Console\Command;
 
 /**
  * Retention enforcement. Scheduled hourly (routes/console.php):
- *  - executes due data_deletion_requests (consent withdrawal, account deletion)
+ *  - executes due data_deletion_requests (consent withdrawal, account deletion):
+ *      session_derived    behaviour events, baselines and the session report
+ *      session_transcript transcript segments and ASR job rows
+ *      all_sessions       both, for every session of one patient
+ *      account            the above plus the user record
  *  - deletes behaviour events / transcripts older than the configured retention
  *  - drops expired verification codes
  */
@@ -39,10 +44,18 @@ class PurgeExpiredData extends Command
                 $n += BehaviorEvent::where('therapy_session_id', $req->therapy_session_id)->delete();
                 $n += BehaviorBaseline::where('therapy_session_id', $req->therapy_session_id)->delete();
                 SessionReport::where('therapy_session_id', $req->therapy_session_id)->delete();
+            } elseif ($req->scope === 'session_transcript' && $req->therapy_session_id) {
+                // Withdrawing the transcription consent has to remove the words
+                // already recorded, not merely stop recording new ones. The ASR
+                // job rows go with them: they carry the timing and duration of
+                // every chunk of the patient's speech.
+                $n += TranscriptSegment::where('therapy_session_id', $req->therapy_session_id)->delete();
+                $n += AsrJob::where('therapy_session_id', $req->therapy_session_id)->delete();
             } elseif ($req->scope === 'all_sessions' || $req->scope === 'account') {
                 $n += BehaviorEvent::where('patient_id', $req->user_id)->delete();
                 $sessions = TherapySession::where('patient_id', $req->user_id)->pluck('id');
                 $n += TranscriptSegment::whereIn('therapy_session_id', $sessions)->delete();
+                $n += AsrJob::whereIn('therapy_session_id', $sessions)->delete();
                 BehaviorBaseline::whereIn('therapy_session_id', $sessions)->delete();
                 SessionReport::whereIn('therapy_session_id', $sessions)->delete();
                 if ($req->scope === 'account') {

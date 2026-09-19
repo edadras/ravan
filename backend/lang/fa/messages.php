@@ -13,4 +13,9 @@ return [
     'diagnostic_claim_rejected' => 'ادعای تشخیصی پذیرفته نمی‌شود.',
     'no_relationship' => 'پیام‌رسانی فقط بین مراجع و درمانگری که نوبت دارند ممکن است.',
     'already_paid' => 'این نوبت قبلاً پرداخت شده است.',
+
+    // Shown with the transcription consent only when the server is configured
+    // to use an engine outside this deployment (config/ravan.php -> asr).
+    'transcription_remote_processor' => 'برای تبدیل گفتار به متن، تکه‌های صدای این جلسه به سرویس :processor فرستاده می‌شود، که خارج از این سامانه است. اگر با این موضوع موافق نیستید، این گزینه را روشن نکنید؛ جلسه بدون رونویسی به‌طور کامل برگزار می‌شود.',
+    'transcription_remote_bullet' => 'صدا برای رونویسی به :processor فرستاده می‌شود',
 ];

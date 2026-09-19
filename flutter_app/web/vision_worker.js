@@ -145,6 +145,8 @@ class VisionWorker {
       } catch (_) { /* a malformed frame from the server is not worth a crash */ }
     };
 
+    // Kept for the audio worker, which shares this origin when the page could
+    // not reach the server's clock.
     this.t0 = performance.now();
     this.last = { face: 0, body: 0 };
     this.poseOverruns = 0;
@@ -207,12 +209,17 @@ class VisionWorker {
     requestAnimationFrame(tick);
   }
 
+  /** Session time on the origin every recorder shares (see ravan_clock.js). */
+  _tMs() {
+    return window.RavanClock?.synced ? window.RavanClock.nowMs() : Math.round(performance.now() - this.t0);
+  }
+
   _send(source, features, quality) {
     if (this.ws?.readyState !== 1) return;
     this.ws.send(JSON.stringify({
       type: 'frame',
       data: {
-        t_ms: Math.round(performance.now() - this.t0),
+        t_ms: this._tMs(),
         source,
         features,
         quality,
@@ -222,7 +229,7 @@ class VisionWorker {
   }
 
   _process(now, doFace, doBody) {
-    const tMs = Math.round(now - this.t0);
+    const tMs = this._tMs();
     const v = this.video;
 
     // ---- frame quality from a greyscale thumbnail

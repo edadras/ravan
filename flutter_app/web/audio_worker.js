@@ -14,6 +14,11 @@
 
     start({ stream, ws, t0 }) {
       this.ws = ws; this.t0 = t0 || performance.now();
+      // Session time on the origin shared with the vision worker and both
+      // microphone recorders; see web/ravan_clock.js.
+      this.tMs = () => (window.RavanClock && window.RavanClock.synced
+        ? window.RavanClock.nowMs()
+        : Math.round(performance.now() - this.t0));
       this.ctx = new (window.AudioContext || window.webkitAudioContext)();
       const src = this.ctx.createMediaStreamSource(stream);
       this.an = this.ctx.createAnalyser(); this.an.fftSize = 2048; src.connect(this.an);
@@ -60,7 +65,7 @@
         silence_duration: !this.speaking && !this.remoteSpeaking && this.pauseStart ? (performance.now() - this.pauseStart) / 1000 : 0,
       };
       const quality = { audio_quality: this.frames ? Math.max(0, 1 - this.clipped / (this.frames * this.buf.length) * 50) : 0, audio_snr_db: Math.max(0, mean(this.rms) + 60), audio_clipping_ratio: this.frames ? this.clipped / (this.frames * this.buf.length) : 0 };
-      this.ws.send(JSON.stringify({ type: "frame", data: { t_ms: Math.round(performance.now() - this.t0), source: "audio", features, quality, speaker_state: state } }));
+      this.ws.send(JSON.stringify({ type: "frame", data: { t_ms: this.tMs(), source: "audio", features, quality, speaker_state: state } }));
       if (window.RavanVision) window.RavanVision.setSpeakerState(state);
       this.pauses = []; this.f0s = []; this.rms = []; this.voiced = 0; this.frames = 0; this.clipped = 0;
     }

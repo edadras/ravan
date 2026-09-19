@@ -3,6 +3,7 @@
 import os
 import random
 import sys
+import time
 
 import pytest
 
@@ -202,3 +203,54 @@ def test_guardrail(text, should_remove):
     assert bool(removed) == should_remove
     if should_remove:
         assert text not in clean
+
+
+# --------------------------------------------------------------- ingest tokens
+def _session_token(secret: str, session_id: str, expires: int) -> str:
+    import base64
+    import hashlib
+    import hmac
+
+    sig = base64.urlsafe_b64encode(
+        hmac.new(secret.encode(), f"{session_id}.{expires}".encode(), hashlib.sha256).digest()
+    ).decode().rstrip("=")
+    return f"v1.{session_id}.{expires}.{sig}"
+
+
+def test_ingest_token_is_bound_to_one_session_and_expires(monkeypatch):
+    """The browser gets a credential for its own session, not the service secret."""
+    from app import main
+
+    monkeypatch.setattr(main, "API_TOKEN", "service-secret")
+    now = int(time.time())
+
+    good = _session_token("service-secret", "session-a", now + 600)
+    assert main.verify_ingest_token(good, "session-a")
+
+    # Not reusable against another session...
+    assert not main.verify_ingest_token(good, "session-b")
+    # ...nor after it expires...
+    assert not main.verify_ingest_token(_session_token("service-secret", "session-a", now - 1), "session-a")
+    # ...nor forged with a different secret.
+    assert not main.verify_ingest_token(_session_token("guessed", "session-a", now + 600), "session-a")
+    # The service token itself still works, for backend-to-service calls.
+    assert main.verify_ingest_token("service-secret", "session-a")
+    assert not main.verify_ingest_token(None, "session-a")
+    assert not main.verify_ingest_token("v1.session-a.nonsense.sig", "session-a")
+
+
+def test_idle_sessions_are_evicted(monkeypatch):
+    """An abandoned call must not keep its analyser alive for the process's lifetime."""
+    from app import main
+
+    monkeypatch.setattr(main, "SESSION_TTL_S", 60.0)
+    main.SESSIONS["stale"] = object()
+    main.LAST_SEEN["stale"] = time.time() - 120
+    main.SESSIONS["fresh"] = object()
+    main.LAST_SEEN["fresh"] = time.time()
+
+    assert main._sweep() == 1
+    assert "stale" not in main.SESSIONS
+    assert "fresh" in main.SESSIONS
+    main.SESSIONS.pop("fresh")
+    main.LAST_SEEN.pop("fresh")

@@ -12,6 +12,7 @@ import '../../core/l10n.dart';
 import '../../core/models.dart';
 import '../../core/realtime.dart';
 import 'asr_client.dart';
+import 'session_clock.dart';
 import 'webrtc_service.dart';
 import 'widgets/event_card.dart';
 
@@ -49,7 +50,12 @@ class _DoctorConsoleScreenState extends State<DoctorConsoleScreen> {
 
   Future<void> _boot() async {
     api = AuthScope.of(context).api;
+    final joinSentAt = DateTime.now().millisecondsSinceEpoch;
     final join = await api.post('/sessions/${widget.uuid}/join') as Map<String, dynamic>;
+    // The clinician's microphone recorder must timestamp against the same
+    // origin as the patient's, or the gap between a question and its answer is
+    // the difference between two unrelated clocks.
+    SessionClock.sync(join['clock'] as Map<String, dynamic>?, joinSentAt);
     analysisEnabled = join['session']['analysis_enabled'] == true;
     final info = await api.get('/sessions/${widget.uuid}') as Map<String, dynamic>;
     patientId = info['patient_id'] as int?;
@@ -71,7 +77,15 @@ class _DoctorConsoleScreenState extends State<DoctorConsoleScreen> {
       rt!.messages.listen((m) {
         if (m.event == 'behavior.event') _addEvent(BehaviorEvent.fromJson(m.data));
         if (m.event == 'transcript.segment') setState(() => transcript.add(TranscriptSegment.fromJson(m.data)));
-        if (m.event == 'session.status') setState(() => analysisEnabled = m.data['analysis_enabled'] == true);
+        if (m.event == 'session.status') {
+          // A consent withdrawn in the patient's browser stops this browser's
+          // recorder too; the clinician is told why.
+          if (m.data['transcription_allowed'] == false && asr?.running == true) {
+            asr!.stop();
+            if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.t('transcription_withdrawn_notice'))));
+          }
+          setState(() => analysisEnabled = m.data['analysis_enabled'] == true);
+        }
       });
     } catch (_) {
       poll = Timer.periodic(const Duration(seconds: 3), (_) => _refresh());

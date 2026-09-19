@@ -9,6 +9,7 @@ import '../../core/auth_store.dart';
 import '../../core/l10n.dart';
 import 'analysis_bridge.dart';
 import 'asr_client.dart';
+import 'session_clock.dart';
 import 'consent_dialog.dart';
 import 'webrtc_service.dart';
 
@@ -29,6 +30,7 @@ class _PatientSessionScreenState extends State<PatientSessionScreen> {
   Map<String, dynamic>? session;
   Map<String, dynamic>? joinInfo;
   bool analysisOn = false;
+  bool transcriptionOn = false;
   bool cameraOn = true;
   String statusKey = 'connecting';
   final chat = <Map<String, dynamic>>[];
@@ -55,7 +57,12 @@ class _PatientSessionScreenState extends State<PatientSessionScreen> {
         await api.post('/sessions/${widget.uuid}/consents', {'types': granted.toList()});
       }
     }
+    final joinSentAt = DateTime.now().millisecondsSinceEpoch;
     joinInfo = await api.post('/sessions/${widget.uuid}/join', {'browser': web.window.navigator.userAgent}) as Map<String, dynamic>;
+    // Put every recorder in this browser on the session's own time origin
+    // before any of them starts, so the clinician's question and the patient's
+    // answer are measured against the same zero.
+    SessionClock.sync(joinInfo!['clock'] as Map<String, dynamic>?, joinSentAt);
     if (joinInfo!['webrtc'] != null) {
       room = await rtc.connect(url: joinInfo!['webrtc']['url'] as String, token: joinInfo!['webrtc']['token'] as String, video: session!['mode'] == 'video');
       room!.addListener(() => setState(() {}));
@@ -94,25 +101,52 @@ class _PatientSessionScreenState extends State<PatientSessionScreen> {
       mic ??= await web.window.navigator.mediaDevices.getUserMedia(web.MediaStreamConstraints(audio: true.toJS)).toDart;
       asr = AsrClient(api: api, sessionUuid: widget.uuid, language: context.lang, onSegments: (segs) => setState(() => transcript.addAll(segs.cast<Map<String, dynamic>>())));
       await asr!.start(mic!);
-      setState(() {});
+      setState(() => transcriptionOn = true);
     } catch (_) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.t('mic_permission_needed'))));
     }
   }
 
-  Future<void> _withdraw() async {
+  /// Withdrawing a consent has to stop the thing it permitted, here and now.
+  ///
+  /// The button used to withdraw the behaviour-analysis consent only, and left
+  /// the microphone recorder running: the patient saw the analysis stop while
+  /// their speech kept being uploaded. Each consent now has its own control,
+  /// and each one stops its own recorder before the request is even sent.
+  Future<void> _withdraw(String type) async {
     final ok = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
         title: Text(context.t('withdraw_title')),
-        content: Text(context.t('withdraw_body')),
-        actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: Text(context.t('cancel'))), FilledButton(onPressed: () => Navigator.pop(context, true), child: Text(context.t('withdraw_confirm')))],
+        content: Text(context.t(type == 'transcription' ? 'withdraw_transcription_body' : 'withdraw_body')),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: Text(context.t('cancel'))),
+          FilledButton(onPressed: () => Navigator.pop(context, true), child: Text(context.t('withdraw_confirm'))),
+        ],
       ),
     );
-    if (ok == true) {
+    if (ok != true) return;
+
+    // Stop first, ask the server afterwards: if the request fails, nothing has
+    // been captured in the meantime.
+    if (type == 'transcription') {
+      asr?.stop();
+    } else {
       bridge.stop();
-      await api.post('/sessions/${widget.uuid}/consents/withdraw', {'type': 'behavior_analysis'});
-      setState(() => analysisOn = false);
+      asr?.stop();
+    }
+    setState(() {
+      if (type == 'transcription') {
+        transcriptionOn = false;
+      } else {
+        analysisOn = false;
+        transcriptionOn = false;
+      }
+    });
+    try {
+      await api.post('/sessions/${widget.uuid}/consents/withdraw', {'type': type});
+    } on ApiException catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
     }
   }
 
@@ -168,12 +202,14 @@ class _PatientSessionScreenState extends State<PatientSessionScreen> {
                   Switch(value: analysisOn, onChanged: _toggleAnalysis),
                   Text(context.t(analysisOn ? 'analysis_on_label' : 'analysis_paused_label')),
                   const SizedBox(width: 12),
-                  TextButton(onPressed: _withdraw, child: Text(context.t('withdraw_consent'))),
+                  TextButton(onPressed: () => _withdraw('behavior_analysis'), child: Text(context.t('withdraw_consent'))),
                 ] else
                   Text(context.t('analysis_disabled_label')),
                 const Spacer(),
                 Icon(asr?.running == true ? Icons.mic : Icons.mic_off, size: 18, color: asr?.running == true ? Colors.green : Colors.grey),
                 Text(context.t(asr?.running == true ? 'transcription_on' : 'transcription_off'), style: const TextStyle(fontSize: 12)),
+                if (transcriptionOn)
+                  TextButton(onPressed: () => _withdraw('transcription'), child: Text(context.t('withdraw_transcription'))),
               ]),
             ),
           ]),

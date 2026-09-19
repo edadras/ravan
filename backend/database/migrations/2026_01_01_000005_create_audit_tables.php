@@ -36,7 +36,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
             $table->foreignId('therapy_session_id')->nullable()->constrained()->cascadeOnDelete();
-            $table->string('scope', 32);                    // session_derived | all_sessions | account
+            $table->string('scope', 32);                    // session_derived | session_transcript | all_sessions | account
             $table->string('status', 20)->default('pending');
             $table->timestamp('scheduled_for');
             $table->timestamp('completed_at')->nullable();

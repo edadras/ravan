@@ -9,6 +9,12 @@
     start({ stream, chunkMs = 5000, t0, onChunk }) {
       this.stop();
       this.t0 = t0 || performance.now();
+      // Chunk start times must sit on the session's shared origin, or the
+      // clinician's question and the patient's answer — recorded by two
+      // different browsers — cannot be compared. See web/ravan_clock.js.
+      this.tMs = () => (window.RavanClock && window.RavanClock.synced
+        ? window.RavanClock.nowMs()
+        : Math.round(performance.now() - this.t0));
       this.onChunk = onChunk;
       this.chunkMs = chunkMs;
       this.stream = stream;
@@ -20,12 +26,13 @@
       const mime = MediaRecorder.isTypeSupported("audio/webm;codecs=opus") ? "audio/webm;codecs=opus" : "audio/webm";
       const rec = new MediaRecorder(this.stream, { mimeType: mime, audioBitsPerSecond: 32000 });
       const started = performance.now();
+      const startedSessionMs = this.tMs();
       const parts = [];
       rec.ondataavailable = (e) => { if (e.data && e.data.size > 0) parts.push(e.data); };
       rec.onstop = () => {
         const blob = new Blob(parts, { type: "audio/webm" });
         const dur = Math.round(performance.now() - started);
-        if (blob.size > 2000 && this.onChunk) this.onChunk(blob, Math.round(started - this.t0), dur);
+        if (blob.size > 2000 && this.onChunk) this.onChunk(blob, startedSessionMs, dur);
         this._cycle();
       };
       rec.start();

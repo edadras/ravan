@@ -13,4 +13,9 @@ return [
     'diagnostic_claim_rejected' => 'Diagnostic claims are not accepted.',
     'no_relationship' => 'Messaging is available only between a patient and a clinician with an appointment.',
     'already_paid' => 'This appointment is already paid.',
+
+    // Shown with the transcription consent only when the server is configured
+    // to use an engine outside this deployment (config/ravan.php -> asr).
+    'transcription_remote_processor' => 'To turn speech into text, short chunks of this session\'s audio are sent to :processor, a service outside this platform. If you are not comfortable with that, leave this option off; the session works fully without transcription.',
+    'transcription_remote_bullet' => 'Audio is sent to :processor for transcription',
 ];

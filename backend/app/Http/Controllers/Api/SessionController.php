@@ -57,6 +57,19 @@ class SessionController extends Controller
 
         $payload = [
             'session' => $session->only(['uuid', 'mode', 'status', 'started_at', 'analysis_enabled', 'language']),
+            // One shared time origin for every recorder in the session.
+            //
+            // The vision worker, the audio worker and the two microphone
+            // recorders each used to start their own `performance.now()` clock,
+            // so a patient's answer and the clinician's question were timed
+            // against different origins and every response-latency figure
+            // carried the difference between them as an error. Both clients now
+            // express t_ms as milliseconds since `clock.session_start_ms`, using
+            // `clock.server_now_ms` to correct their own device clock.
+            'clock' => [
+                'server_now_ms' => (int) round(microtime(true) * 1000),
+                'session_start_ms' => (int) ($session->started_at?->getPreciseTimestamp(3) ?? round(microtime(true) * 1000)),
+            ],
             'role' => $user->id === $session->clinician_id ? 'clinician' : 'patient',
             'channels' => [
                 'shared' => "private-session.{$session->uuid}.".($user->id === $session->clinician_id ? 'clinician' : 'patient'),
@@ -69,9 +82,8 @@ class SessionController extends Controller
         if ($user->id === $session->patient_id && $payload['analysis_allowed']) {
             // The patient client streams derived features straight to the analysis service (no raw media).
             $payload['analysis_ingest'] = [
-                'ws_url' => rtrim(str_replace(['http://', 'https://'], ['ws://', 'wss://'], config('ravan.analysis.base_url')), '/')."/ws/sessions/{$session->uuid}",
-                'token' => config('ravan.analysis.token'),
-            ];
+                'ws_url' => $this->analysis->ingestUrl($session),
+            ] + $this->analysis->issueIngestToken($session);
         }
         $this->audit->log($user, 'session.joined', $session);
 

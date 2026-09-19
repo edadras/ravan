@@ -9,6 +9,11 @@ return [
     'analysis' => [
         'base_url' => env('RAVAN_ANALYSIS_URL', 'http://analysis:8100'),
         'token' => env('RAVAN_ANALYSIS_TOKEN', ''),
+        // The WebSocket address the browser uses. Inside the deployment the
+        // service is reached at base_url; the browser goes through the proxy.
+        'public_ws_url' => env('RAVAN_ANALYSIS_PUBLIC_WS', ''),
+        // Lifetime of the per-session ingest credential handed to the browser.
+        'ingest_token_ttl_s' => (int) env('RAVAN_ANALYSIS_INGEST_TTL_S', 4 * 3600),
         // shared secret used by the analysis service to sign event webhooks (HMAC-SHA256)
         'webhook_secret' => env('RAVAN_WEBHOOK_SECRET', ''),
         // public URL of this backend that the analysis service can reach
@@ -41,7 +46,13 @@ return [
         'current_versions' => [
             'video_call' => env('RAVAN_CONSENT_VIDEO_VERSION', '1.0'),
             'behavior_analysis' => env('RAVAN_CONSENT_ANALYSIS_VERSION', '1.0'),
-            'transcription' => env('RAVAN_CONSENT_TRANSCRIPTION_VERSION', '1.0'),
+            // The transcription consent version carries the processor, because
+            // who hears the patient's voice is part of what is being consented
+            // to. Switching the server from local recognition to a third-party
+            // API therefore invalidates every consent granted under the old
+            // arrangement, and each patient is asked again.
+            'transcription' => env('RAVAN_CONSENT_TRANSCRIPTION_VERSION', '1.0')
+                .(in_array(env('RAVAN_ASR_BACKEND', 'faster_whisper'), ['openai'], true) ? '-remote' : ''),
         ],
     ],
 
@@ -65,6 +76,11 @@ return [
     'asr' => [
         'base_url' => env('RAVAN_ASR_URL', 'http://asr:8200'),
         'token' => env('RAVAN_ASR_TOKEN', ''),
+        // Which engine transcribes the audio. `faster_whisper` and `fake` run
+        // inside this deployment; `openai` uploads the patient's speech to a
+        // third party, which the consent text has to say out loud.
+        'backend' => env('RAVAN_ASR_BACKEND', 'faster_whisper'),
+        'remote_backends' => ['openai' => 'OpenAI'],
     ],
 
     /*

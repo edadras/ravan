@@ -20,8 +20,14 @@ GET  /healthz
 
 from __future__ import annotations
 
+import asyncio
+import base64
+import hashlib
+import hmac
 import logging
 import os
+import time
+from contextlib import asynccontextmanager
 from typing import Any
 
 from fastapi import FastAPI, Header, HTTPException, WebSocket, WebSocketDisconnect
@@ -33,10 +39,17 @@ from .engine import SessionAnalyzer, WebhookSink
 from .schemas import ControlMessage, FrameBatch, QuestionEvent, StartSession, TranscriptSegment
 
 logging.basicConfig(level=os.environ.get("RAVAN_LOG_LEVEL", "INFO"))
+log = logging.getLogger("ravan.api")
 app = FastAPI(title="Ravan analysis service", version=__version__)
 SESSIONS: dict[str, SessionAnalyzer] = {}
+LAST_SEEN: dict[str, float] = {}
 API_TOKEN = os.environ.get("RAVAN_ANALYSIS_TOKEN", "")
 WEBHOOK_SECRET = os.environ.get("RAVAN_WEBHOOK_SECRET", "")
+# How long a session may sit untouched before it is dropped. Browsers close
+# without warning and calls are abandoned; without this the process kept every
+# analyser it had ever created and grew until it was killed.
+SESSION_TTL_S = float(os.environ.get("RAVAN_SESSION_TTL_S", 4 * 3600))
+SWEEP_INTERVAL_S = 300.0
 
 
 def _auth(authorization: str | None) -> None:
@@ -44,17 +57,92 @@ def _auth(authorization: str | None) -> None:
         raise HTTPException(401, "unauthorized")
 
 
+def verify_ingest_token(token: str | None, session_id: str) -> bool:
+    """Accept either the service token or a per-session ingest credential.
+
+    The backend hands the patient's browser a token bound to one session id and
+    an expiry, signed with the service token (see AnalysisServiceClient::
+    issueIngestToken). Previously the browser received the service token itself,
+    which let any patient reach every session's data.
+    """
+    if not API_TOKEN:
+        return True
+    if not token:
+        return False
+    if hmac.compare_digest(token, API_TOKEN):
+        return True
+    parts = token.split(".")
+    if len(parts) != 4 or parts[0] != "v1":
+        return False
+    _, sid, expires, signature = parts
+    if not hmac.compare_digest(sid, session_id):
+        return False
+    try:
+        if float(expires) < time.time():
+            return False
+    except ValueError:
+        return False
+    expected = base64.urlsafe_b64encode(
+        hmac.new(API_TOKEN.encode(), f"{sid}.{expires}".encode(), hashlib.sha256).digest()
+    ).decode().rstrip("=")
+    return hmac.compare_digest(signature, expected)
+
+
+def _touch(session_id: str) -> None:
+    LAST_SEEN[session_id] = time.time()
+
+
 def _get(session_id: str) -> SessionAnalyzer:
     try:
-        return SESSIONS[session_id]
+        analyzer = SESSIONS[session_id]
     except KeyError:
         raise HTTPException(404, "unknown session") from None
+    _touch(session_id)
+    return analyzer
+
+
+def _sweep() -> int:
+    cutoff = time.time() - SESSION_TTL_S
+    stale = [sid for sid, seen in LAST_SEEN.items() if seen < cutoff]
+    for sid in stale:
+        SESSIONS.pop(sid, None)
+        LAST_SEEN.pop(sid, None)
+    if stale:
+        log.info("evicted %d idle session(s) after %.0fs", len(stale), SESSION_TTL_S)
+    return len(stale)
+
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    async def sweeper() -> None:
+        while True:
+            await asyncio.sleep(SWEEP_INTERVAL_S)
+            try:
+                _sweep()
+            except Exception:  # a sweep failure must never take the service down
+                log.exception("session sweep failed")
+
+    task = asyncio.create_task(sweeper())
+    try:
+        yield
+    finally:
+        task.cancel()
+
+
+app.router.lifespan_context = lifespan
 
 
 @app.get("/healthz")
 def healthz() -> dict[str, Any]:
     cat = load_catalog()
-    return {"ok": True, "version": __version__, "catalog_version": cat.version, "signals": len(cat.signals), "active_sessions": len(SESSIONS)}
+    return {
+        "ok": True,
+        "version": __version__,
+        "catalog_version": cat.version,
+        "signals": len(cat.signals),
+        "active_sessions": len(SESSIONS),
+        "session_ttl_s": SESSION_TTL_S,
+    }
 
 
 @app.get("/catalog")
@@ -70,6 +158,7 @@ def start(cfg: StartSession, authorization: str | None = Header(default=None)) -
         raise HTTPException(409, "session already started")
     sink = WebhookSink(cfg.webhook_url, WEBHOOK_SECRET) if cfg.webhook_url and WEBHOOK_SECRET else None
     SESSIONS[cfg.session_id] = SessionAnalyzer(cfg, sink=sink)
+    _touch(cfg.session_id)
     return {"session_id": cfg.session_id, "signals_enabled": len(SESSIONS[cfg.session_id].signals)}
 
 
@@ -123,6 +212,7 @@ def baseline(session_id: str, authorization: str | None = Header(default=None)) 
 def finish(session_id: str, language: str | None = None, authorization: str | None = Header(default=None)) -> dict:
     _auth(authorization)
     an = SESSIONS.pop(session_id, None)
+    LAST_SEEN.pop(session_id, None)
     if an is None:
         raise HTTPException(404, "unknown session")
     return an.finish(language).model_dump()
@@ -150,7 +240,7 @@ def assist_chat(payload: dict, authorization: str | None = Header(default=None))
 @app.websocket("/ws/sessions/{session_id}")
 async def ws_ingest(ws: WebSocket, session_id: str) -> None:
     token = ws.query_params.get("token")
-    if API_TOKEN and token != API_TOKEN:
+    if not verify_ingest_token(token, session_id):
         await ws.close(code=4401)
         return
     an = SESSIONS.get(session_id)
@@ -172,6 +262,7 @@ async def ws_ingest(ws: WebSocket, session_id: str) -> None:
                 an.on_question(QuestionEvent(**msg["data"]))
             elif kind == "control":
                 fired = an.control(ControlMessage(**msg["data"]))
+            _touch(session_id)
             if fired:
                 await ws.send_json({"type": "events", "events": [e.model_dump() for e in fired]})
     except WebSocketDisconnect:

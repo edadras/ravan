@@ -1,0 +1,188 @@
+import 'dart:js_interop';
+
+import 'package:flutter/material.dart';
+import 'package:livekit_client/livekit_client.dart' as lk;
+import 'package:web/web.dart' as web;
+
+import '../../core/api_client.dart';
+import '../../core/auth_store.dart';
+import 'analysis_bridge.dart';
+import 'consent_dialog.dart';
+import 'webrtc_service.dart';
+
+/// Patient side: video call + chat + a single, always-visible switch for behavioural analysis.
+/// The patient never sees behaviour events.
+class PatientSessionScreen extends StatefulWidget {
+  const PatientSessionScreen({super.key, required this.uuid});
+  final String uuid;
+
+  @override
+  State<PatientSessionScreen> createState() => _PatientSessionScreenState();
+}
+
+class _PatientSessionScreenState extends State<PatientSessionScreen> {
+  late ApiClient api;
+  final rtc = WebRtcService();
+  final bridge = AnalysisBridge();
+  Map<String, dynamic>? session;
+  Map<String, dynamic>? joinInfo;
+  bool analysisOn = false;
+  bool cameraOn = true;
+  String status = 'در حال اتصال…';
+  final chat = <Map<String, dynamic>>[];
+  final chatCtl = TextEditingController();
+  lk.Room? room;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _boot());
+  }
+
+  Future<void> _boot() async {
+    api = AuthScope.of(context).api;
+    session = await api.get('/sessions/${widget.uuid}') as Map<String, dynamic>;
+    final consented = (session!['consents'] as List).where((c) => c['withdrawn_at'] == null).map((c) => c['type']).toSet();
+    if (session!['mode'] != 'text' && !consented.contains('video_call')) {
+      final texts = (await api.get('/consents/texts', query: {'locale': 'fa'}) as List).cast<Map<String, dynamic>>();
+      final granted = await ConsentDialog.show(context, texts);
+      if (granted != null && granted.isNotEmpty) {
+        await api.post('/sessions/${widget.uuid}/consents', {'types': granted.toList()});
+      }
+    }
+    joinInfo = await api.post('/sessions/${widget.uuid}/join', {'browser': web.window.navigator.userAgent}) as Map<String, dynamic>;
+    if (joinInfo!['webrtc'] != null) {
+      room = await rtc.connect(url: joinInfo!['webrtc']['url'] as String, token: joinInfo!['webrtc']['token'] as String, video: session!['mode'] == 'video');
+      room!.addListener(() => setState(() {}));
+      room!.createListener().on<lk.ActiveSpeakersChangedEvent>((e) => bridge.setRemoteSpeaking(e.speakers.any((p) => p is lk.RemoteParticipant)));
+    }
+    setState(() => status = 'در جلسه');
+    if (joinInfo!['analysis_allowed'] == true) await _toggleAnalysis(true);
+  }
+
+  Future<void> _toggleAnalysis(bool on) async {
+    try {
+      if (on) {
+        await api.post('/sessions/${widget.uuid}/analysis/start');
+        if (!bridge.running) {
+          final videoEl = web.document.querySelector('video') as web.HTMLVideoElement?;
+          final mic = await web.window.navigator.mediaDevices.getUserMedia(web.MediaStreamConstraints(audio: true.toJS)).toDart;
+          if (videoEl != null) {
+            await bridge.start(videoEl: videoEl, micStream: mic, wsUrl: joinInfo!['analysis_ingest']['ws_url'] as String, token: joinInfo!['analysis_ingest']['token'] as String);
+          }
+        } else {
+          bridge.resume();
+        }
+      } else {
+        await api.post('/sessions/${widget.uuid}/analysis/pause');
+        bridge.pause();
+      }
+      setState(() => analysisOn = on);
+    } on ApiException catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+    }
+  }
+
+  Future<void> _withdraw() async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('پس گرفتن رضایت تحلیل'),
+        content: const Text('تحلیل بلافاصله متوقف می‌شود، جلسه ادامه می‌یابد و داده‌های مشتق‌شده این جلسه حذف خواهند شد.'),
+        actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('انصراف')), FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('پس می‌گیرم'))],
+      ),
+    );
+    if (ok == true) {
+      bridge.stop();
+      await api.post('/sessions/${widget.uuid}/consents/withdraw', {'type': 'behavior_analysis'});
+      setState(() => analysisOn = false);
+    }
+  }
+
+  Future<void> _end() async {
+    bridge.stop();
+    await rtc.disconnect();
+    await api.post('/sessions/${widget.uuid}/end');
+    if (mounted) Navigator.of(context).pop();
+  }
+
+  @override
+  void dispose() {
+    bridge.stop();
+    rtc.disconnect();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final remote = room?.remoteParticipants.values.expand((p) => p.videoTrackPublications).map((p) => p.track).whereType<lk.VideoTrack>().firstOrNull;
+    return Scaffold(
+      appBar: AppBar(title: Text('جلسه — $status'), actions: [
+        TextButton.icon(onPressed: _end, icon: const Icon(Icons.call_end, color: Colors.red), label: const Text('پایان جلسه')),
+      ]),
+      body: Row(children: [
+        Expanded(
+          flex: 3,
+          child: Column(children: [
+            Expanded(
+              child: Container(
+                color: Colors.black,
+                child: Stack(children: [
+                  if (remote != null) lk.VideoTrackRenderer(remote) else const Center(child: Text('در انتظار درمانگر…', style: TextStyle(color: Colors.white70))),
+                  if (rtc.localVideo != null && cameraOn)
+                    Positioned(bottom: 12, left: 12, width: 200, height: 150, child: lk.VideoTrackRenderer(rtc.localVideo!)),
+                ]),
+              ),
+            ),
+            Container(
+              color: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Row(children: [
+                IconButton(
+                  tooltip: cameraOn ? 'خاموش کردن دوربین' : 'روشن کردن دوربین',
+                  onPressed: () async { await rtc.setCameraEnabled(!cameraOn); setState(() => cameraOn = !cameraOn); },
+                  icon: Icon(cameraOn ? Icons.videocam : Icons.videocam_off),
+                ),
+                const SizedBox(width: 16),
+                if (joinInfo?['analysis_allowed'] == true) ...[
+                  Switch(value: analysisOn, onChanged: _toggleAnalysis),
+                  Text(analysisOn ? 'تحلیل رفتاری فعال است (فقط اعداد، بدون ذخیره تصویر)' : 'تحلیل رفتاری متوقف است'),
+                  const SizedBox(width: 12),
+                  TextButton(onPressed: _withdraw, child: const Text('پس گرفتن رضایت')),
+                ] else
+                  const Text('تحلیل رفتاری غیرفعال است'),
+              ]),
+            ),
+          ]),
+        ),
+        SizedBox(
+          width: 320,
+          child: Column(children: [
+            Expanded(
+              child: ListView.builder(
+                padding: const EdgeInsets.all(12),
+                itemCount: chat.length,
+                itemBuilder: (_, i) => Align(
+                  alignment: chat[i]['mine'] == true ? Alignment.centerRight : Alignment.centerLeft,
+                  child: Card(child: Padding(padding: const EdgeInsets.all(8), child: Text(chat[i]['body'] as String))),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(8),
+              child: TextField(
+                controller: chatCtl,
+                decoration: const InputDecoration(hintText: 'پیام…', border: OutlineInputBorder()),
+                onSubmitted: (v) async {
+                  if (v.trim().isEmpty) return;
+                  await api.post('/sessions/${widget.uuid}/messages', {'body': v});
+                  setState(() { chat.add({'body': v, 'mine': true}); chatCtl.clear(); });
+                },
+              ),
+            ),
+          ]),
+        ),
+      ]),
+    );
+  }
+}

@@ -1,0 +1,603 @@
+{
+  "schema_version": "1.0",
+  "purpose": "Observational behavioral signals during consented tele-mental-health sessions. Not diagnostic and not a substitute for clinician judgment.",
+  "principles": {
+    "interpretation": "Treat every signal as an observation/hypothesis, never as proof of a mental state or diagnosis.",
+    "baseline_required": true,
+    "context_required": true,
+    "multimodal_confirmation_preferred": true,
+    "clinician_confirmation_required": true,
+    "patient_facing_labels": false,
+    "store_raw_video_default": false
+  },
+  "quality_gates": [
+    {
+      "id": "face_visibility",
+      "rule": "Do not score facial signals if face visibility/landmark quality is below configured threshold."
+    },
+    {
+      "id": "pose_visibility",
+      "rule": "Do not score body signals if required joints are outside frame or occluded."
+    },
+    {
+      "id": "audio_quality",
+      "rule": "Do not score speech/prosody when SNR or transcription confidence is inadequate."
+    },
+    {
+      "id": "baseline",
+      "rule": "Compare changes primarily against the same person's session baseline, not a population stereotype."
+    }
+  ],
+  "signal_groups": [
+    {
+      "group": "face_head",
+      "signals": [
+        {
+          "id": "gaze_away",
+          "observation": "Sustained gaze direction away from screen/camera",
+          "features": [
+            "gaze_vector",
+            "head_yaw",
+            "head_pitch"
+          ],
+          "possible_contexts": [
+            "thinking",
+            "reading",
+            "distraction",
+            "discomfort",
+            "camera placement"
+          ],
+          "clinical_note": "Nonspecific. Do not label as avoidance, deception, anxiety, or a diagnosis without clinical context."
+        },
+        {
+          "id": "gaze_shift_rate",
+          "observation": "Change in frequency of gaze shifts",
+          "features": [
+            "gaze_shift_count_per_min"
+          ],
+          "possible_contexts": [
+            "environmental distraction",
+            "cognitive effort",
+            "interaction style"
+          ],
+          "clinical_note": "Use change-from-baseline only."
+        },
+        {
+          "id": "head_down",
+          "observation": "Sustained downward head orientation",
+          "features": [
+            "head_pitch",
+            "duration"
+          ],
+          "possible_contexts": [
+            "reading",
+            "fatigue",
+            "posture",
+            "emotional response"
+          ],
+          "clinical_note": "Prompt clinician to consider context; no diagnostic inference."
+        },
+        {
+          "id": "head_turn",
+          "observation": "Repeated/sustained head turn away",
+          "features": [
+            "head_yaw",
+            "duration",
+            "frequency"
+          ],
+          "possible_contexts": [
+            "other person in room",
+            "noise",
+            "screen placement",
+            "disengagement"
+          ],
+          "clinical_note": "Check environmental explanation first."
+        },
+        {
+          "id": "head_nod",
+          "observation": "Head nod events",
+          "features": [
+            "pitch_cycles",
+            "frequency"
+          ],
+          "possible_contexts": [
+            "acknowledgment",
+            "agreement",
+            "conversational feedback"
+          ],
+          "clinical_note": "Do not equate nodding with true agreement."
+        },
+        {
+          "id": "head_shake",
+          "observation": "Horizontal head-shake events",
+          "features": [
+            "yaw_cycles",
+            "frequency"
+          ],
+          "possible_contexts": [
+            "disagreement",
+            "emphasis",
+            "habit"
+          ],
+          "clinical_note": "Interpret with speech content."
+        },
+        {
+          "id": "blink_rate_change",
+          "observation": "Blink rate changes relative to baseline",
+          "features": [
+            "eye_aspect_ratio",
+            "blinks_per_min"
+          ],
+          "possible_contexts": [
+            "dry eyes",
+            "screen use",
+            "fatigue",
+            "lighting",
+            "arousal"
+          ],
+          "clinical_note": "Highly nonspecific."
+        },
+        {
+          "id": "eye_closure_long",
+          "observation": "Long eye closure episodes",
+          "features": [
+            "eye_closure_duration"
+          ],
+          "possible_contexts": [
+            "fatigue",
+            "reflection",
+            "irritation"
+          ],
+          "clinical_note": "Do not infer sleepiness or distress without corroboration."
+        },
+        {
+          "id": "brow_activity",
+          "observation": "Visible eyebrow movement/change",
+          "features": [
+            "brow_landmarks",
+            "action_unit_like_features"
+          ],
+          "possible_contexts": [
+            "speech emphasis",
+            "concentration",
+            "affective expression"
+          ],
+          "clinical_note": "Describe movement; avoid emotion certainty."
+        },
+        {
+          "id": "mouth_tension_like",
+          "observation": "Change in lip compression/corner geometry",
+          "features": [
+            "lip_landmarks"
+          ],
+          "possible_contexts": [
+            "speech articulation",
+            "habit",
+            "concentration",
+            "affective expression"
+          ],
+          "clinical_note": "Observation only; avoid emotion labels."
+        }
+      ]
+    },
+    {
+      "group": "upper_body_posture",
+      "signals": [
+        {
+          "id": "lean_forward",
+          "observation": "Torso moves/holds forward relative to baseline",
+          "features": [
+            "shoulder_hip_geometry",
+            "depth_or_scale_proxy"
+          ],
+          "possible_contexts": [
+            "screen visibility",
+            "engagement",
+            "hearing",
+            "posture"
+          ],
+          "clinical_note": "Nonspecific."
+        },
+        {
+          "id": "lean_back",
+          "observation": "Torso moves/holds backward relative to baseline",
+          "features": [
+            "shoulder_hip_geometry"
+          ],
+          "possible_contexts": [
+            "comfort",
+            "chair movement",
+            "interaction change"
+          ],
+          "clinical_note": "Nonspecific."
+        },
+        {
+          "id": "slumped_posture",
+          "observation": "Sustained reduction in upright torso angle",
+          "features": [
+            "neck_shoulder_hip_angles",
+            "duration"
+          ],
+          "possible_contexts": [
+            "fatigue",
+            "chair ergonomics",
+            "habit",
+            "physical discomfort"
+          ],
+          "clinical_note": "Do not map directly to depression or low mood."
+        },
+        {
+          "id": "posture_change_rate",
+          "observation": "Frequency of meaningful posture changes",
+          "features": [
+            "pose_delta_per_min"
+          ],
+          "possible_contexts": [
+            "restlessness",
+            "pain",
+            "chair discomfort",
+            "normal movement"
+          ],
+          "clinical_note": "Compare with baseline and session topic."
+        },
+        {
+          "id": "shoulder_asymmetry",
+          "observation": "Persistent shoulder height/rotation asymmetry",
+          "features": [
+            "left_right_shoulder_delta"
+          ],
+          "possible_contexts": [
+            "camera angle",
+            "posture",
+            "musculoskeletal factors"
+          ],
+          "clinical_note": "Primarily a quality/context flag; not a psychological inference."
+        },
+        {
+          "id": "shoulder_raise",
+          "observation": "Repeated shoulder elevation",
+          "features": [
+            "shoulder_neck_distance",
+            "frequency"
+          ],
+          "possible_contexts": [
+            "gesture",
+            "stretching",
+            "physical tension"
+          ],
+          "clinical_note": "Do not label as anxiety."
+        },
+        {
+          "id": "torso_turn_away",
+          "observation": "Torso orientation turns away from camera",
+          "features": [
+            "shoulder_orientation",
+            "hip_orientation"
+          ],
+          "possible_contexts": [
+            "reaching",
+            "another person",
+            "distraction",
+            "comfort"
+          ],
+          "clinical_note": "Check context."
+        }
+      ]
+    },
+    {
+      "group": "hands_arms",
+      "signals": [
+        {
+          "id": "arms_crossed",
+          "observation": "Arms appear crossed for sustained period",
+          "features": [
+            "wrist_elbow_shoulder_geometry"
+          ],
+          "possible_contexts": [
+            "comfort",
+            "temperature",
+            "habit",
+            "self-support"
+          ],
+          "clinical_note": "Do not infer defensiveness."
+        },
+        {
+          "id": "hand_to_face",
+          "observation": "Repeated hand contact/near-contact with face",
+          "features": [
+            "hand_face_distance",
+            "frequency"
+          ],
+          "possible_contexts": [
+            "itching",
+            "thinking",
+            "habit",
+            "self-soothing"
+          ],
+          "clinical_note": "Nonspecific."
+        },
+        {
+          "id": "hand_to_neck",
+          "observation": "Repeated hand contact/near-contact with neck",
+          "features": [
+            "hand_neck_distance",
+            "frequency"
+          ],
+          "possible_contexts": [
+            "clothing",
+            "itching",
+            "habit",
+            "physical discomfort"
+          ],
+          "clinical_note": "Nonspecific."
+        },
+        {
+          "id": "hand_fidgeting",
+          "observation": "Repeated small hand/finger movements",
+          "features": [
+            "hand_velocity",
+            "motion_repetition"
+          ],
+          "possible_contexts": [
+            "habit",
+            "object manipulation",
+            "restlessness"
+          ],
+          "clinical_note": "Only surface if hands are reliably visible."
+        },
+        {
+          "id": "self_touch_rate_change",
+          "observation": "Change in self-touch frequency from baseline",
+          "features": [
+            "hand_body_contact_events"
+          ],
+          "possible_contexts": [
+            "habit",
+            "itching",
+            "temperature",
+            "interaction change"
+          ],
+          "clinical_note": "Observation/hypothesis only."
+        },
+        {
+          "id": "gesture_rate_change",
+          "observation": "Change in conversational hand gesture rate",
+          "features": [
+            "hand_motion_events_per_min"
+          ],
+          "possible_contexts": [
+            "topic",
+            "communication style",
+            "camera framing"
+          ],
+          "clinical_note": "Do not infer personality or diagnosis."
+        }
+      ]
+    },
+    {
+      "group": "lower_body_if_visible",
+      "signals": [
+        {
+          "id": "leg_bounce_like",
+          "observation": "Repeated rhythmic lower-limb motion",
+          "features": [
+            "knee_ankle_motion_periodicity"
+          ],
+          "possible_contexts": [
+            "habit",
+            "music",
+            "restlessness",
+            "positioning"
+          ],
+          "clinical_note": "Only when lower body is clearly visible."
+        },
+        {
+          "id": "foot_tapping_like",
+          "observation": "Repeated rhythmic foot motion",
+          "features": [
+            "ankle_motion_periodicity"
+          ],
+          "possible_contexts": [
+            "habit",
+            "restlessness"
+          ],
+          "clinical_note": "Nonspecific."
+        },
+        {
+          "id": "frequent_seat_shift",
+          "observation": "Frequent whole-body repositioning",
+          "features": [
+            "hip_torso_motion_events"
+          ],
+          "possible_contexts": [
+            "chair discomfort",
+            "pain",
+            "restlessness"
+          ],
+          "clinical_note": "Ask/consider physical comfort."
+        }
+      ]
+    },
+    {
+      "group": "speech_prosody",
+      "signals": [
+        {
+          "id": "speech_rate_change",
+          "observation": "Words/syllables per minute change from baseline",
+          "features": [
+            "words_per_min",
+            "syllables_per_min"
+          ],
+          "possible_contexts": [
+            "topic familiarity",
+            "emotion",
+            "fatigue",
+            "language"
+          ],
+          "clinical_note": "Language and individual baseline matter."
+        },
+        {
+          "id": "pause_rate_change",
+          "observation": "Change in pause frequency/duration",
+          "features": [
+            "pause_count",
+            "pause_duration"
+          ],
+          "possible_contexts": [
+            "thinking",
+            "connection latency",
+            "word finding",
+            "emotion"
+          ],
+          "clinical_note": "Account for network delay."
+        },
+        {
+          "id": "response_latency_change",
+          "observation": "Change in time between question end and response start",
+          "features": [
+            "turn_gap_ms"
+          ],
+          "possible_contexts": [
+            "thinking",
+            "audio delay",
+            "distraction"
+          ],
+          "clinical_note": "Subtract measured network/processing latency where possible."
+        },
+        {
+          "id": "volume_change",
+          "observation": "Relative vocal intensity change",
+          "features": [
+            "rms_db_relative"
+          ],
+          "possible_contexts": [
+            "microphone distance",
+            "environment",
+            "speech emphasis"
+          ],
+          "clinical_note": "Normalize for device/mic gain."
+        },
+        {
+          "id": "pitch_variability_change",
+          "observation": "Change in pitch variability",
+          "features": [
+            "f0_mean",
+            "f0_std"
+          ],
+          "possible_contexts": [
+            "language prosody",
+            "speech emphasis",
+            "affective expression"
+          ],
+          "clinical_note": "Do not assign a specific emotion from pitch alone."
+        },
+        {
+          "id": "turn_length_change",
+          "observation": "Change in average speaking-turn duration",
+          "features": [
+            "turn_duration"
+          ],
+          "possible_contexts": [
+            "question type",
+            "topic",
+            "interaction dynamics"
+          ],
+          "clinical_note": "Interpret alongside clinician prompts."
+        },
+        {
+          "id": "interruption_overlap",
+          "observation": "Overlapping speech/interruptions",
+          "features": [
+            "speaker_diarization",
+            "overlap_duration"
+          ],
+          "possible_contexts": [
+            "latency",
+            "conversational style",
+            "urgency"
+          ],
+          "clinical_note": "Network latency can create false overlaps."
+        }
+      ]
+    },
+    {
+      "group": "interaction_content_metadata",
+      "signals": [
+        {
+          "id": "topic_linked_behavior_change",
+          "observation": "Observable signal changes temporally near a topic/question",
+          "features": [
+            "event_timestamps",
+            "topic_segments",
+            "signal_delta"
+          ],
+          "possible_contexts": [
+            "topic relevance",
+            "coincidence",
+            "fatigue over time"
+          ],
+          "clinical_note": "Surface as correlation, never causation."
+        },
+        {
+          "id": "long_silence",
+          "observation": "Silence longer than configured personal/session threshold",
+          "features": [
+            "silence_duration"
+          ],
+          "possible_contexts": [
+            "reflection",
+            "technical issue",
+            "distraction"
+          ],
+          "clinical_note": "Check connection state before surfacing."
+        },
+        {
+          "id": "camera_exit",
+          "observation": "Face/body leaves frame",
+          "features": [
+            "person_presence"
+          ],
+          "possible_contexts": [
+            "technical adjustment",
+            "privacy",
+            "interruption"
+          ],
+          "clinical_note": "Operational event, not psychological inference."
+        }
+      ]
+    }
+  ],
+  "forbidden_inferences": [
+    "deception_or_lie_detection",
+    "diagnosis_from_video_or_body_language",
+    "suicidality_from_pose_or_face_alone",
+    "violence_risk_from_appearance_or_body_language_alone",
+    "sexual_orientation",
+    "political_or_religious_beliefs",
+    "personality_disorder_from_visual_behavior",
+    "intelligence_or_competence",
+    "substance_use_from_appearance_alone"
+  ],
+  "event_output_example": {
+    "timestamp_ms": 412000,
+    "signal_id": "posture_change_rate",
+    "observation": "Posture changes increased compared with the first 5-minute baseline.",
+    "confidence": 0.84,
+    "quality": {
+      "pose": 0.92,
+      "face": 0.88,
+      "audio": 0.95
+    },
+    "context": {
+      "speaker": "patient",
+      "topic": "work stress"
+    },
+    "possible_contexts": [
+      "chair discomfort",
+      "restlessness",
+      "topic-related response"
+    ],
+    "clinician_prompt": "Consider whether this change is clinically relevant; ask for context if appropriate.",
+    "diagnostic_claim": null
+  }
+}

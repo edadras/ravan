@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <base href="$FLUTTER_BASE_HREF">
+  <meta charset="UTF-8">
+  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="روان — پلتفرم مشاوره روان‌شناسی آنلاین">
+  <title>روان</title>
+  <link rel="manifest" href="manifest.json">
+  <!--
+    On-device feature extraction. Raw video never leaves the WebRTC call: the worker
+    computes derived numbers (see catalog/feature_dictionary.json) and streams only those.
+  -->
+  <script type="module" src="vision_worker.js"></script>
+  <script src="audio_worker.js"></script>
+</head>
+<body>
+  <script src="flutter_bootstrap.js" async></script>
+</body>
+</html>

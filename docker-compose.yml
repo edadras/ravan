@@ -1,0 +1,80 @@
+services:
+  mysql:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: ravan
+      MYSQL_USER: ravan
+      MYSQL_PASSWORD: ravan
+      MYSQL_ROOT_PASSWORD: root
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    volumes: ["mysql:/var/lib/mysql"]
+    ports: ["3306:3306"]
+
+  redis:
+    image: redis:7-alpine
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    depends_on: [mysql, redis, analysis]
+    environment:
+      APP_ENV: local
+      APP_URL: http://localhost:8000
+      DB_CONNECTION: mysql
+      DB_HOST: mysql
+      DB_DATABASE: ravan
+      DB_USERNAME: ravan
+      DB_PASSWORD: ravan
+      CACHE_STORE: redis
+      QUEUE_CONNECTION: redis
+      REDIS_HOST: redis
+      BROADCAST_CONNECTION: reverb
+      REVERB_APP_ID: ravan
+      REVERB_APP_KEY: ravan
+      REVERB_APP_SECRET: change-me
+      REVERB_HOST: reverb
+      REVERB_PORT: 8080
+      RAVAN_ANALYSIS_URL: http://analysis:8100
+      RAVAN_ANALYSIS_TOKEN: change-me-analysis-token
+      RAVAN_WEBHOOK_SECRET: change-me-webhook-secret
+      RAVAN_WEBHOOK_URL: http://backend:8000/api/webhooks/analysis/events
+      RAVAN_WEBRTC_URL: ws://localhost:7880
+      RAVAN_WEBRTC_API_KEY: devkey
+      RAVAN_WEBRTC_API_SECRET: devsecretdevsecretdevsecretdevsecret
+      RAVAN_CATALOG_PATH: /catalog/signal_catalog.json
+    volumes: ["./catalog:/catalog:ro"]
+    ports: ["8000:8000"]
+    command: sh -c "php artisan migrate --force --seed && php artisan serve --host=0.0.0.0 --port=8000"
+
+  reverb:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    depends_on: [backend]
+    environment:
+      REVERB_APP_ID: ravan
+      REVERB_APP_KEY: ravan
+      REVERB_APP_SECRET: change-me
+    ports: ["8080:8080"]
+    command: php artisan reverb:start --host=0.0.0.0 --port=8080
+
+  analysis:
+    build:
+      context: .
+      dockerfile: analysis-service/Dockerfile
+    environment:
+      RAVAN_ANALYSIS_TOKEN: change-me-analysis-token
+      RAVAN_WEBHOOK_SECRET: change-me-webhook-secret
+      RAVAN_LLM_PROVIDER: none
+    ports: ["8100:8100"]
+
+  livekit:
+    image: livekit/livekit-server:latest
+    command: --dev --bind 0.0.0.0
+    environment:
+      LIVEKIT_KEYS: "devkey: devsecretdevsecretdevsecretdevsecret"
+    ports: ["7880:7880", "7881:7881", "7882:7882/udp"]
+
+volumes:
+  mysql:

@@ -1,0 +1,61 @@
+# ---------------------------------------------------------------------------
+# Development override.
+#
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+#
+# Differences from production: debug on, code bind-mounted so edits are live,
+# opcache timestamp checks on, service ports exposed on localhost, mail to the
+# log, the fake speech backend, and demo data seeded.
+# ---------------------------------------------------------------------------
+
+services:
+  backend:
+    environment:
+      APP_ENV: local
+      APP_DEBUG: "true"
+      LOG_LEVEL: debug
+      RAVAN_SEED: "true"
+      PHP_OPCACHE_VALIDATE_TIMESTAMPS: "1"
+    volumes:
+      - ./backend:/app
+      - ./catalog:/catalog:ro
+    ports:
+      - "127.0.0.1:9000:9000"
+
+  worker:
+    environment:
+      APP_ENV: local
+      APP_DEBUG: "true"
+    volumes:
+      - ./backend:/app
+      - ./catalog:/catalog:ro
+
+  scheduler:
+    volumes:
+      - ./backend:/app
+      - ./catalog:/catalog:ro
+
+  analysis:
+    environment:
+      RAVAN_LOG_LEVEL: DEBUG
+    volumes:
+      - ./analysis-service/app:/app/app:ro
+      - ./catalog:/app/catalog:ro
+    ports:
+      - "127.0.0.1:8100:8100"
+
+  asr:
+    environment:
+      RAVAN_ASR_BACKEND: fake
+    volumes:
+      - ./asr-service/app:/app/app:ro
+    ports:
+      - "127.0.0.1:8200:8200"
+
+  mysql:
+    ports:
+      - "127.0.0.1:3306:3306"
+
+  redis:
+    ports:
+      - "127.0.0.1:6379:6379"

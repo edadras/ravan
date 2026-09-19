@@ -12,3 +12,8 @@ flutter_app/.packages
 .env
 *.log
 .DS_Store
+
+# vendored MediaPipe runtime and models (fetched by deploy/fetch-vendor.sh)
+flutter_app/web/vendor/
+# local backups
+deploy/mysql/backups/

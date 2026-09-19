@@ -1,0 +1,37 @@
+# LiveKit SFU — production configuration.
+#
+# Signalling is proxied through Caddy at wss://<domain>/rtc, so LiveKit itself
+# listens on plain HTTP inside the compose network. Media uses the UDP port
+# range below (open it on the host firewall) and falls back to the bundled
+# coturn service for clients behind restrictive NAT.
+#
+# API keys are NOT in this file: they come from the LIVEKIT_KEYS environment
+# variable that docker-compose builds out of .env, so no secret is ever
+# committed or baked into an image.
+port: 7880
+bind_addresses:
+  - "0.0.0.0"
+
+rtc:
+  tcp_port: 7881
+  port_range_start: 50000
+  port_range_end: 50200
+  use_external_ip: true
+
+redis:
+  address: redis:6379
+
+turn:
+  enabled: false # the standalone coturn service handles TURN
+
+logging:
+  level: info
+  json: true
+
+room:
+  # The backend mints join tokens without a roomCreate grant, so the first
+  # participant with a valid token materialises the room.
+  auto_create: true
+  empty_timeout: 300
+  departure_timeout: 60
+  max_participants: 8

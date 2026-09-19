@@ -14,7 +14,6 @@
 # The PHP code is NOT on Caddy's filesystem: FastCGI is addressed with an
 # explicit root so php-fpm resolves the script inside its own container.
 # ---------------------------------------------------------------------------
-
 {
 	email {$RAVAN_TLS_EMAIL:admin@localhost}
 }

@@ -1,0 +1,135 @@
+# ۱۱ · نصب روی سرور / Deployment
+
+راهنمای نصب روان روی یک سرور. همه‌چیز با یک دستور بالا می‌آید و همهٔ سرویس‌ها روی همان یک ماشین اجرا می‌شوند.
+
+> **English.** Everything below installs Ravan on a single server: one command
+> brings up the whole stack, and every service runs on that one machine.
+
+---
+
+## پیش‌نیازها / Requirements
+
+| | حداقل | پیشنهادی |
+|---|---|---|
+| CPU | ۴ هسته | ۸ هسته |
+| RAM | ۴ گیگابایت | ۸ گیگابایت (با مدل گفتار `large-v3`) |
+| دیسک | ۲۰ گیگابایت | ۴۰ گیگابایت |
+| سیستم‌عامل | Linux با Docker Engine ۲۴ به بالا و افزونهٔ compose | Ubuntu 24.04 |
+
+یک نام دامنه که به IP این سرور اشاره کند لازم است. مرورگر بدون HTTPS اجازهٔ دسترسی به دوربین و میکروفون را نمی‌دهد، پس نصب روی IP خالی کار نمی‌کند.
+
+> TLS is not optional: browsers refuse `getUserMedia` outside a secure context,
+> so the camera, the microphone and therefore the whole session flow need a
+> real certificate. Point a domain at the server before installing.
+
+## نصب / Install
+
+```bash
+git clone https://github.com/edadras/ravan.git /opt/ravan
+cd /opt/ravan
+./install.sh --domain ravan.example.com --email admin@example.com
+```
+
+اسکریپت این کارها را انجام می‌دهد:
+
+1. وجود Docker و compose و آزاد بودن پورت‌های ۸۰ و ۴۴۳ را بررسی می‌کند.
+2. `.env` را از `.env.example` می‌سازد و **همهٔ رمزها را با `openssl rand` تولید می‌کند**. هیچ رمز پیش‌فرضی وجود ندارد.
+3. اجرا و مدل‌های MediaPipe را روی سرور می‌آورد تا برنامه در زمان اجرا به CDN بیرونی وابسته نباشد.
+4. ایمیج‌ها را می‌سازد (بار اول ۱۰ تا ۲۰ دقیقه) و سرویس‌ها را بالا می‌آورد.
+5. مهاجرت‌ها و دادهٔ مرجع (کاتالوگ سیگنال‌ها، متن رضایت‌ها، کدهای ICD-11) را اعمال می‌کند.
+
+بعد از آن، اولین مدیر را بسازید:
+
+```bash
+docker compose exec backend php artisan ravan:create-admin
+```
+
+هیچ حساب مدیری seed نمی‌شود و هیچ مسیر عمومی‌ای به نقش مدیر نمی‌رسد؛ این تنها راه ساخت اولین مدیر است.
+
+## فایروال / Firewall
+
+| پورت | پروتکل | برای چه |
+|---|---|---|
+| ۸۰، ۴۴۳ | TCP | وب و تمدید گواهی |
+| ۷۸۸۱ | TCP | رسانهٔ LiveKit روی TCP (برای شبکه‌هایی که UDP را می‌بندند) |
+| ۵۰۰۰۰–۵۰۲۰۰ | UDP | رسانهٔ LiveKit |
+| ۳۴۷۸ | TCP و UDP | TURN |
+| ۵۳۴۹ | TCP و UDP | TURN روی TLS |
+| ۵۰۳۰۰–۵۰۵۰۰ | UDP | رلهٔ TURN |
+
+اگر UDP بسته باشد تماس برقرار می‌شود ولی از مسیر رله عبور می‌کند، که تأخیر و مصرف پهنای باند سرور را بالا می‌برد.
+
+## سرویس‌ها / What runs
+
+```
+caddy      TLS، سرو وب‌اپ، پراکسی به بقیه   ← تنها سرویسی که به اینترنت باز است
+backend    Laravel روی php-fpm
+worker     کارگر صف (اعلان‌ها، یادآوری‌ها)
+scheduler  زمان‌بند (یادآوری نوبت، اجرای سیاست نگهداری)
+reverb     سوکت رویدادهای زنده
+analysis   سرویس تحلیل رفتاری (فقط عدد می‌گیرد، نه تصویر)
+asr        تبدیل گفتار به متن
+mysql      پایگاه داده
+redis      کش، صف، نشست
+livekit    SFU تماس تصویری
+coturn     رلهٔ TURN
+```
+
+`caddy` گواهی Let's Encrypt را خودش می‌گیرد و تمدید می‌کند. اگر `RAVAN_DOMAIN=localhost` بگذارید، گواهی خودامضا می‌سازد که برای یک اجرای آزمایشی محلی کافی است.
+
+## تنظیمات مهم در `.env`
+
+**موتور تبدیل گفتار به متن.** پیش‌فرض `faster_whisper` است که کاملاً روی همین سرور اجرا می‌شود و صدای هیچ مراجعی جایی نمی‌رود. اگر `RAVAN_ASR_BACKEND=openai` بگذارید، تکه‌های صدای جلسه به OpenAI فرستاده می‌شود. در این حالت:
+
+- متن رضایت رونویسی خودکار این موضوع را به مراجع می‌گوید؛
+- نسخهٔ رضایت هم عوض می‌شود، یعنی رضایت‌هایی که قبلاً با موتور محلی گرفته شده‌اند دیگر معتبر نیستند و از هر مراجع دوباره پرسیده می‌شود.
+
+این رفتار عمدی است: اینکه صدای مراجع را چه کسی می‌شنود بخشی از همان چیزی است که به آن رضایت داده.
+
+**دستیار بالینی.** پیش‌فرض `RAVAN_LLM_PROVIDER=none` است و دستیار خاموش می‌ماند. خط لولهٔ تحلیل مشاهده‌ای مستقل از آن کار می‌کند و هیچ‌وقت به مدل بیرونی وصل نمی‌شود.
+
+**اندازهٔ مدل گفتار.** `large-v3` روی CPU با `int8` حدود ۴ گیگابایت RAM می‌خواهد. روی سرور کوچک `RAVAN_ASR_MODEL=small` بگذارید.
+
+## پشتیبان‌گیری / Backups
+
+```bash
+./deploy/backup.sh --keep 14
+```
+
+پایگاه داده و فایل‌های بارگذاری‌شده را در `deploy/mysql/backups/` می‌گذارد و نسخه‌های قدیمی‌تر از ۱۴ روز را پاک می‌کند. در cron:
+
+```
+0 3 * * *  cd /opt/ravan && ./deploy/backup.sh --keep 14
+```
+
+این فایل‌ها دادهٔ بالینی دارند. رمزگذاری‌شده و بیرون از همین سرور نگه‌شان دارید.
+
+## به‌روزرسانی / Upgrade
+
+```bash
+cd /opt/ravan
+git pull
+./install.sh --upgrade
+```
+
+`.env` و داده‌ها دست‌نخورده می‌مانند؛ فقط ایمیج‌ها دوباره ساخته و سرویس‌ها راه‌اندازی می‌شوند و مهاجرت‌های جدید اجرا می‌شود.
+
+## عیب‌یابی / Troubleshooting
+
+**گواهی صادر نمی‌شود.** `docker compose logs caddy`. معمولاً یعنی دامنه هنوز به این سرور اشاره نمی‌کند یا پورت ۸۰ از بیرون بسته است؛ Let's Encrypt برای بررسی به پورت ۸۰ نیاز دارد.
+
+**تماس وصل می‌شود ولی تصویری نمی‌آید.** بازهٔ UDP یا TURN بسته است. اگر سرور پشت NAT یک‌به‌یک است، `RAVAN_PUBLIC_IP` را در `.env` بگذارید.
+
+**تحلیل رفتاری شروع نمی‌شود.** در کنسول مرورگر ببینید سوکت `wss://<domain>/analysis/...` باز می‌شود یا نه. اگر مدل‌های MediaPipe بارگذاری نشده‌اند، `./deploy/fetch-vendor.sh flutter_app/web/vendor` را اجرا و ایمیج `web` را دوباره بسازید.
+
+**رویدادهای زنده نمی‌رسند.** `docker compose logs reverb`، و بررسی کنید `REVERB_APP_KEY` همان کلیدی باشد که ایمیج `web` با آن ساخته شده. بعد از تغییر این کلید باید `docker compose build web` را دوباره اجرا کنید.
+
+**صف کار نمی‌کند.** `docker compose logs worker`. اعلان‌ها و یادآوری‌ها از صف می‌گذرند؛ اگر این سرویس پایین باشد، بقیه بدون خطا کار می‌کنند ولی هیچ اعلانی فرستاده نمی‌شود.
+
+## بازگرداندن از پشتیبان / Restore
+
+```bash
+gunzip -c deploy/mysql/backups/db-<stamp>.sql.gz \
+  | docker compose exec -T mysql mysql -u root -p"$DB_ROOT_PASSWORD" ravan
+docker compose restart backend worker scheduler reverb
+```

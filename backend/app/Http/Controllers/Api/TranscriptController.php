@@ -31,7 +31,7 @@ class TranscriptController extends Controller
     public function store(Request $request, TherapySession $session): JsonResponse
     {
         $this->authorize('join', $session);
-        abort_unless($session->hasActiveConsent(ConsentType::Transcription), 403, 'transcription consent missing');
+        abort_unless($session->hasActiveConsent(ConsentType::Transcription), 403, __('messages.transcription_consent_missing'));
         $data = $request->validate([
             'segments' => ['required', 'array', 'max:50'],
             'segments.*.speaker' => ['required', 'in:patient,clinician,unknown'],

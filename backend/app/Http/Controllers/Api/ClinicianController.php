@@ -35,7 +35,7 @@ class ClinicianController extends Controller
 
     public function specialties(): JsonResponse
     {
-        return response()->json(Specialty::orderBy('name_fa')->get());
+        return response()->json(Specialty::orderBy('name_'.app()->getLocale())->get());
     }
 
     /** Free slots for the next N days computed from weekly schedule minus booked appointments and time off. */

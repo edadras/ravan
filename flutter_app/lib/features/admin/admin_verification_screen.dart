@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/auth_store.dart';
+import '../../core/l10n.dart';
 
 /// Admin: review clinician credentials and approve / reject / suspend.
 class AdminVerificationScreen extends StatefulWidget {
@@ -32,17 +33,17 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
       context: context,
       builder: (_) => StatefulBuilder(
         builder: (context, setS) => AlertDialog(
-          title: Text('تصمیم: $decision — ${p['user']['name']}'),
+          title: Text(context.t('decision_title', {'d': context.t(decision == 'approved' ? 'approve' : decision == 'rejected' ? 'reject' : 'suspend'), 'name': p['user']['name']})),
           content: Column(mainAxisSize: MainAxisSize.min, children: [
             for (final k in checks.keys)
-              CheckboxListTile(value: checks[k], onChanged: (v) => setS(() => checks[k] = v ?? false), title: Text({'license_valid': 'مجوز معتبر و فعال', 'identity_matched': 'هویت با مدارک تطابق دارد', 'degree_verified': 'مدرک تحصیلی تأیید شد'}[k]!)),
-            TextField(controller: notes, decoration: const InputDecoration(labelText: 'یادداشت'), maxLines: 3),
+              CheckboxListTile(value: checks[k], onChanged: (v) => setS(() => checks[k] = v ?? false), title: Text(context.t(k))),
+            TextField(controller: notes, decoration: InputDecoration(labelText: context.t('notes')), maxLines: 3),
           ]),
-          actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('انصراف')), FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('ثبت'))],
+          actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: Text(context.t('cancel'))), FilledButton(onPressed: () => Navigator.pop(context, true), child: Text(context.t('submit')))],
         ),
       ),
     );
-    if (ok == true) {
+    if (ok == true && mounted) {
       await AuthScope.of(context).api.post('/admin/clinicians/${p['id']}/decision', {'decision': decision, 'notes': notes.text, 'checked_items': checks});
       _load();
     }
@@ -51,9 +52,19 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('احراز هویت درمانگران'), actions: [
-        DropdownButton<String>(value: status, items: const [DropdownMenuItem(value: 'pending', child: Text('در انتظار')), DropdownMenuItem(value: 'approved', child: Text('تأیید شده')), DropdownMenuItem(value: 'rejected', child: Text('رد شده')), DropdownMenuItem(value: 'suspended', child: Text('معلق'))], onChanged: (v) { status = v!; _load(); }),
-        const SizedBox(width: 16),
+      appBar: AppBar(title: Text(context.t('admin_title')), actions: [
+        DropdownButton<String>(
+          value: status,
+          items: [
+            DropdownMenuItem(value: 'pending', child: Text(context.t('pending'))),
+            DropdownMenuItem(value: 'approved', child: Text(context.t('approved'))),
+            DropdownMenuItem(value: 'rejected', child: Text(context.t('rejected_s'))),
+            DropdownMenuItem(value: 'suspended', child: Text(context.t('suspended'))),
+          ],
+          onChanged: (v) { status = v!; _load(); },
+        ),
+        const LanguageSwitcher(),
+        const SizedBox(width: 8),
       ]),
       body: ListView.builder(
         padding: const EdgeInsets.all(12),
@@ -64,11 +75,11 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
           return Card(
             child: ListTile(
               title: Text('${p['user']['name']} — ${p['title'] ?? ''}'),
-              subtitle: Text('${p['license_authority'] ?? ''} · شماره مجوز: ${p['license_number'] ?? '—'} · مدارک: ${docs.length} · ${p['user']['email']}'),
+              subtitle: Text('${p['license_authority'] ?? ''} · ${context.t('license_no')}: ${p['license_number'] ?? '—'} · ${context.t('documents')}: ${docs.length} · ${p['user']['email']}'),
               trailing: Wrap(spacing: 6, children: [
-                FilledButton(onPressed: () => _decide(p, 'approved'), child: const Text('تأیید')),
-                OutlinedButton(onPressed: () => _decide(p, 'rejected'), child: const Text('رد')),
-                TextButton(onPressed: () => _decide(p, 'suspended'), child: const Text('تعلیق')),
+                FilledButton(onPressed: () => _decide(p, 'approved'), child: Text(context.t('approve'))),
+                OutlinedButton(onPressed: () => _decide(p, 'rejected'), child: Text(context.t('reject'))),
+                TextButton(onPressed: () => _decide(p, 'suspended'), child: Text(context.t('suspend'))),
               ]),
             ),
           );

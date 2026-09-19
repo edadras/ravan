@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 
+import '../../core/l10n.dart';
+
 /// Two separate, explicit consents shown BEFORE the camera is switched on.
-/// The patient can grant the call consent alone; analysis is opt-in and reversible mid-session.
+/// Texts come from GET /consents/texts?locale=<ui language>, so they match the patient's language.
 class ConsentDialog extends StatefulWidget {
   const ConsentDialog({super.key, required this.texts});
 
-  /// From GET /consents/texts
   final List<Map<String, dynamic>> texts;
 
   static Future<Set<String>?> show(BuildContext context, List<Map<String, dynamic>> texts) =>
@@ -21,7 +22,7 @@ class _ConsentDialogState extends State<ConsentDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('پیش از شروع جلسه'),
+      title: Text(context.t('before_start')),
       content: SizedBox(
         width: 520,
         child: SingleChildScrollView(
@@ -41,7 +42,7 @@ class _ConsentDialogState extends State<ConsentDialog> {
                         for (final b in (t['bullet_points'] as List)) Text('• $b', style: const TextStyle(fontSize: 13)),
                         const SizedBox(height: 4),
                         Text(t['body'] as String, style: const TextStyle(fontSize: 12, color: Colors.black54)),
-                        Text('نسخه ${t['version']}', style: const TextStyle(fontSize: 11, color: Colors.black38)),
+                        Text(context.t('version', {'v': t['version']}), style: const TextStyle(fontSize: 11, color: Colors.black38)),
                       ],
                     ),
                   ),
@@ -49,15 +50,14 @@ class _ConsentDialogState extends State<ConsentDialog> {
                 ),
                 const Divider(),
               ],
-              const Text('تحلیل رفتاری فقط اعداد توصیفی را استخراج می‌کند، فقط برای درمانگر و فقط به‌عنوان مشاهده نمایش داده می‌شود و هر لحظه قابل توقف است.',
-                  style: TextStyle(fontSize: 12)),
+              Text(context.t('consent_footer'), style: const TextStyle(fontSize: 12)),
             ],
           ),
         ),
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context, <String>{}), child: const Text('ادامه فقط با متن')),
-        FilledButton(onPressed: _granted.contains('video_call') ? () => Navigator.pop(context, _granted) : null, child: const Text('تأیید و ورود به جلسه')),
+        TextButton(onPressed: () => Navigator.pop(context, <String>{}), child: Text(context.t('continue_text_only'))),
+        FilledButton(onPressed: _granted.contains('video_call') ? () => Navigator.pop(context, _granted) : null, child: Text(context.t('confirm_join'))),
       ],
     );
   }

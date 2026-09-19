@@ -17,14 +17,17 @@ return new class extends Migration
             $table->string('tier', 24)->index();
             $table->string('observation_en');
             $table->string('observation_fa');
+            $table->string('observation_tr');
             $table->json('features');
             $table->json('detector');
             $table->json('quality_gates');
             $table->json('possible_contexts');
             $table->text('clinical_rationale_en')->nullable();
             $table->text('clinical_rationale_fa')->nullable();
+            $table->text('clinical_rationale_tr')->nullable();
             $table->text('clinical_note_en')->nullable();
             $table->text('clinical_note_fa')->nullable();
+            $table->text('clinical_note_tr')->nullable();
             $table->json('forbidden_labels');
             $table->string('catalog_version', 16);
             $table->boolean('is_enabled')->default(true);
@@ -70,6 +73,7 @@ return new class extends Migration
             $table->unsignedInteger('t_end_ms');
             $table->string('observation_en');
             $table->string('observation_fa');
+            $table->string('observation_tr');
             $table->double('baseline_value')->nullable();
             $table->double('observed_value')->nullable();
             $table->double('delta')->nullable();
@@ -82,8 +86,10 @@ return new class extends Migration
             $table->json('possible_contexts');
             $table->text('clinical_rationale_en')->nullable();
             $table->text('clinical_rationale_fa')->nullable();
+            $table->text('clinical_rationale_tr')->nullable();
             $table->text('clinical_note_en')->nullable();
             $table->text('clinical_note_fa')->nullable();
+            $table->text('clinical_note_tr')->nullable();
             $table->json('member_event_uuids')->nullable();
             $table->foreignId('transcript_segment_id')->nullable()->constrained()->nullOnDelete();
             $table->string('clinician_status', 20)->default('unreviewed')->index();

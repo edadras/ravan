@@ -1,6 +1,7 @@
 """Helpers that keep signal definitions compact while producing a full record."""
 
 from contexts import CONTEXTS, TIERS
+from translations_tr import CONTEXTS_TR, DEFAULT_NOTE_TR, NOTE_TR, OBS_TR, RATIONALE_TR, TIERS_TR
 
 DETECTOR_DEFAULTS = {
     # feature stays beyond a threshold continuously for min_duration_s
@@ -52,7 +53,13 @@ def S(id, group, obs_en, obs_fa, features, contexts, *, tier="observation", dete
     """
     for c in contexts:
         assert c in CONTEXTS, f"unknown context '{c}' in signal {id}"
+        assert c in CONTEXTS_TR, f"missing Turkish context '{c}' (signal {id})"
     assert tier in TIERS, f"unknown tier '{tier}' in {id}"
+    assert id in OBS_TR, f"missing Turkish observation for signal {id}"
+    if note_en:
+        assert id in NOTE_TR, f"missing Turkish clinical note for signal {id}"
+    if rationale_en:
+        assert rationale_en in RATIONALE_TR, f"missing Turkish rationale for signal {id}"
     det = dict(DETECTOR_DEFAULTS[detector])
     det["type"] = detector
     det.update(overrides)
@@ -72,15 +79,16 @@ def S(id, group, obs_en, obs_fa, features, contexts, *, tier="observation", dete
         "id": id,
         "group": group,
         "tier": tier,
-        "tier_label": {"en": TIERS[tier][0], "fa": TIERS[tier][1]},
-        "observation": {"en": obs_en, "fa": obs_fa},
+        "tier_label": {"en": TIERS[tier][0], "fa": TIERS[tier][1], "tr": TIERS_TR[tier]},
+        "observation": {"en": obs_en, "fa": obs_fa, "tr": OBS_TR[id]},
         "features": list(features),
         "detector": det,
         "quality_gates": gate,
-        "possible_contexts": [{"key": c, "en": CONTEXTS[c][0], "fa": CONTEXTS[c][1]} for c in contexts],
-        "clinical_rationale": {"en": rationale_en, "fa": rationale_fa},
+        "possible_contexts": [{"key": c, "en": CONTEXTS[c][0], "fa": CONTEXTS[c][1], "tr": CONTEXTS_TR[c]} for c in contexts],
+        "clinical_rationale": {"en": rationale_en, "fa": rationale_fa, "tr": RATIONALE_TR.get(rationale_en, "")},
         "clinical_note": {"en": note_en or "Observation only. Interpret with context, baseline and clinician judgment.",
-                          "fa": note_fa or "صرفاً مشاهده است. با توجه به زمینه، خط پایه و قضاوت درمانگر تفسیر شود."},
+                          "fa": note_fa or "صرفاً مشاهده است. با توجه به زمینه، خط پایه و قضاوت درمانگر تفسیر شود.",
+                          "tr": NOTE_TR.get(id, DEFAULT_NOTE_TR)},
         "forbidden_labels": sorted(set(GLOBAL_FORBIDDEN) | set(forbid)),
         "diagnostic_claim": None,
         "patient_facing": False,

@@ -21,9 +21,12 @@ sys.path.insert(0, HERE)
 
 import features as F  # noqa: E402
 from contexts import CONTEXTS, TIERS  # noqa: E402
+from translations_tr import (CLINICIAN_PROMPT_TR, CONTEXTS_TR, FORBIDDEN_TR, GATE_RULE_TR, GROUPS_TR,  # noqa: E402
+                             PRINCIPLES_TR, PURPOSE_TR, TIERS_TR, UNSUPPORTED_TR)
 import signals_face, signals_body, signals_speech, signals_multimodal  # noqa: E402
 
-CATALOG_VERSION = "2.0.0"
+CATALOG_VERSION = "2.1.0"
+LANGUAGES = ["fa", "en", "tr"]
 
 GROUPS = {
     "face_head": ("Head orientation and motion", "جهت و حرکت سر"),
@@ -50,7 +53,8 @@ GROUPS = {
 PRINCIPLES = {
     "interpretation": {
         "en": "Every signal is an observation or hypothesis, never proof of a mental state or a diagnosis.",
-        "fa": "هر سیگنال یک مشاهده یا فرضیه است، هرگز اثبات یک حالت روانی یا تشخیص نیست."},
+        "fa": "هر سیگنال یک مشاهده یا فرضیه است، هرگز اثبات یک حالت روانی یا تشخیص نیست.",
+        "tr": PRINCIPLES_TR["interpretation"]},
     "baseline_required": True,
     "baseline_window_s": 300,
     "baseline_min_quality_fraction": 0.6,
@@ -65,7 +69,8 @@ PRINCIPLES = {
     "network_latency_correction": True,
     "output_language_rule": {
         "en": "Describe what changed, by how much, relative to what baseline, with what quality, and list benign contexts first.",
-        "fa": "بگویید چه چیزی، چقدر، نسبت به کدام خط پایه و با چه کیفیتی تغییر کرده و زمینه‌های بی‌خطر را اول فهرست کنید."},
+        "fa": "بگویید چه چیزی، چقدر، نسبت به کدام خط پایه و با چه کیفیتی تغییر کرده و زمینه‌های بی‌خطر را اول فهرست کنید.",
+        "tr": PRINCIPLES_TR["output_language_rule"]},
 }
 
 FORBIDDEN_INFERENCES = [
@@ -101,7 +106,7 @@ EVENT_OUTPUT_TEMPLATE = {
     "tier": "change",
     "t_start_ms": 754210,
     "t_end_ms": 758900,
-    "observation": {"en": "Time from question end to answer start longer than baseline", "fa": "..."},
+    "observation": {"en": "Time from question end to answer start longer than baseline", "fa": "...", "tr": "..."},
     "baseline_value": 1.4,
     "observed_value": 4.7,
     "delta": 3.3,
@@ -114,7 +119,8 @@ EVENT_OUTPUT_TEMPLATE = {
                 "preceding_question_text": "رابطه شما با خانواده چطور است؟", "seconds_after_question": 0.0},
     "possible_contexts": ["thinking", "network_latency", "distraction", "question_type", "topic_related"],
     "clinician_prompt": {"en": "Consider whether this change is clinically relevant; ask for context if appropriate.",
-                         "fa": "بررسی کنید آیا این تغییر از نظر بالینی مرتبط است؛ در صورت مناسب بودن، زمینه را بپرسید."},
+                         "fa": "بررسی کنید آیا این تغییر از نظر بالینی مرتبط است؛ در صورت مناسب بودن، زمینه را بپرسید.",
+                         "tr": CLINICIAN_PROMPT_TR},
     "member_events": [],
     "diagnostic_claim": None,
     "clinician_status": "unreviewed | relevant | dismissed | noted",
@@ -162,6 +168,18 @@ def validate(signals):
         for m in s["detector"].get("member_signals", []):
             if m != "*" and m not in ids:
                 errors.append(f"{s['id']}: unknown member signal {m}")
+    for s in signals:
+        for field in ("observation", "clinical_note", "tier_label"):
+            for lang in LANGUAGES:
+                if not s[field].get(lang):
+                    errors.append(f"{s['id']}: {field} missing language {lang}")
+        for c in s["possible_contexts"]:
+            for lang in LANGUAGES:
+                if not c.get(lang):
+                    errors.append(f"{s['id']}: context {c['key']} missing language {lang}")
+    for g in GROUPS:
+        if g not in GROUPS_TR:
+            errors.append(f"group {g} missing Turkish label")
     if errors:
         raise SystemExit("catalog validation failed:\n  " + "\n  ".join(errors))
 
@@ -260,9 +278,10 @@ def summary_md(signals):
     ps = parameter_space()
     lines = [f"# Behaviour-signal catalog summary (v{CATALOG_VERSION}, {date.today()})", "",
              f"Total named signals: **{len(signals)}**", "",
-             "## By group", "", "| group | fa | signals |", "|---|---|---|"]
+             "## By group", "", "| group | fa | tr | signals |", "|---|---|---|---|"]
     for g, (en, fa) in GROUPS.items():
-        lines.append(f"| {g} ({en}) | {fa} | {by_group.get(g, 0)} |")
+        lines.append(f"| {g} ({en}) | {fa} | {GROUPS_TR[g]} | {by_group.get(g, 0)} |")
+    lines += ["", f"Languages: {', '.join(LANGUAGES)} (every observation, note, context, tier and group is validated in all three)."]
     lines += ["", "## By display tier", "", "| tier | signals |", "|---|---|"]
     for t, n in sorted(by_tier.items(), key=lambda x: -x[1]):
         lines.append(f"| {t} | {n} |")
@@ -283,9 +302,11 @@ def main():
     catalog = {
         "schema_version": CATALOG_VERSION,
         "generated": str(date.today()),
+        "languages": LANGUAGES,
         "purpose": {
             "en": "Observational behavioural signals during consented tele-mental-health sessions. Not diagnostic and not a substitute for clinician judgment.",
             "fa": "سیگنال‌های رفتاری مشاهده‌ای در جلسات سلامت روان از راه دور با رضایت بیمار. تشخیصی نیست و جایگزین قضاوت درمانگر نیست.",
+            "tr": PURPOSE_TR,
         },
         "principles": PRINCIPLES,
         "quality_gates_global": {
@@ -295,14 +316,15 @@ def main():
             "audio": F.DERIVED_FEATURES["audio_quality"][1],
             "asr": F.DERIVED_FEATURES["asr_quality"][1],
             "rule": {"en": "A signal is never scored while any of its quality gates fails; the failing gate is emitted as a quality event instead.",
-                     "fa": "سیگنال هرگز در حالی که یکی از دروازه‌های کیفیتش ناموفق است امتیازدهی نمی‌شود؛ به‌جای آن دروازه ناموفق به‌عنوان رویداد کیفیت صادر می‌شود."},
+                     "fa": "سیگنال هرگز در حالی که یکی از دروازه‌های کیفیتش ناموفق است امتیازدهی نمی‌شود؛ به‌جای آن دروازه ناموفق به‌عنوان رویداد کیفیت صادر می‌شود.",
+                     "tr": GATE_RULE_TR},
         },
-        "groups": [{"id": g, "en": en, "fa": fa, "signal_count": sum(1 for s in signals if s["group"] == g)} for g, (en, fa) in GROUPS.items()],
-        "tiers": [{"id": t, "en": en, "fa": fa} for t, (en, fa) in TIERS.items()],
-        "contexts": [{"key": k, "en": en, "fa": fa} for k, (en, fa) in CONTEXTS.items()],
+        "groups": [{"id": g, "en": en, "fa": fa, "tr": GROUPS_TR[g], "signal_count": sum(1 for s in signals if s["group"] == g)} for g, (en, fa) in GROUPS.items()],
+        "tiers": [{"id": t, "en": en, "fa": fa, "tr": TIERS_TR[t]} for t, (en, fa) in TIERS.items()],
+        "contexts": [{"key": k, "en": en, "fa": fa, "tr": CONTEXTS_TR[k]} for k, (en, fa) in CONTEXTS.items()],
         "signals": signals,
-        "forbidden_inferences": FORBIDDEN_INFERENCES,
-        "unsupported_measurements": UNSUPPORTED_MEASUREMENTS,
+        "forbidden_inferences": [dict(f, tr=FORBIDDEN_TR[f["id"]]) for f in FORBIDDEN_INFERENCES],
+        "unsupported_measurements": [dict(u, reason_tr=UNSUPPORTED_TR[u["id"]]) for u in UNSUPPORTED_MEASUREMENTS],
         "event_output_template": EVENT_OUTPUT_TEMPLATE,
         "signal_count": len(signals),
     }

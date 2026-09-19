@@ -6,6 +6,7 @@ import 'package:livekit_client/livekit_client.dart' as lk;
 
 import '../../core/api_client.dart';
 import '../../core/auth_store.dart';
+import '../../core/l10n.dart';
 import '../../core/models.dart';
 import '../../core/realtime.dart';
 import 'webrtc_service.dart';
@@ -49,7 +50,6 @@ class _DoctorConsoleScreenState extends State<DoctorConsoleScreen> {
       room = await rtc.connect(url: join['webrtc']['url'] as String, token: join['webrtc']['token'] as String, video: true);
       room!.addListener(() => setState(() {}));
     }
-    // realtime (Reverb / Pusher); falls back to polling if it cannot connect
     try {
       rt = RealtimeClient(wsUrl: const String.fromEnvironment('RAVAN_WS_URL', defaultValue: 'ws://localhost:8080'), appKey: const String.fromEnvironment('RAVAN_WS_KEY', defaultValue: 'ravan'), api: api);
       await rt!.connect();
@@ -86,8 +86,8 @@ class _DoctorConsoleScreenState extends State<DoctorConsoleScreen> {
     if (e.tier == 'safety' && mounted) {
       ScaffoldMessenger.of(context).showMaterialBanner(MaterialBanner(
         backgroundColor: Colors.red.shade50,
-        content: Text('عبارت صریح مرتبط با ایمنی در متن (${e.timeLabel}): «${e.context['transcript_text'] ?? ''}» — فقط ارجاع به متن، بدون امتیاز خطر.'),
-        actions: [TextButton(onPressed: () => ScaffoldMessenger.of(context).hideCurrentMaterialBanner(), child: const Text('دیدم'))],
+        content: Text(context.t('safety_banner', {'t': e.timeLabel, 'text': e.context['transcript_text'] ?? ''})),
+        actions: [TextButton(onPressed: () => ScaffoldMessenger.of(context).hideCurrentMaterialBanner(), child: Text(context.t('seen')))],
       ));
     }
   }
@@ -127,11 +127,11 @@ class _DoctorConsoleScreenState extends State<DoctorConsoleScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Row(children: [
-          const Text('کنسول درمانگر'),
+          Text(context.t('console')),
           const SizedBox(width: 16),
           Chip(
             avatar: Icon(analysisEnabled ? Icons.visibility : Icons.visibility_off, size: 16),
-            label: Text(analysisEnabled ? 'تحلیل رفتاری فعال (با رضایت بیمار)' : 'تحلیل رفتاری غیرفعال', style: const TextStyle(fontSize: 12)),
+            label: Text(context.t(analysisEnabled ? 'analysis_active' : 'analysis_inactive'), style: const TextStyle(fontSize: 12)),
           ),
         ]),
         actions: [
@@ -139,16 +139,15 @@ class _DoctorConsoleScreenState extends State<DoctorConsoleScreen> {
             width: 180,
             child: TextField(
               controller: topicCtl,
-              decoration: const InputDecoration(hintText: 'موضوع فعلی (مثلاً خانواده)', isDense: true),
+              decoration: InputDecoration(hintText: context.t('topic_hint'), isDense: true),
               onSubmitted: (v) => api.post('/sessions/${widget.uuid}/analysis/topic', {'topic': v}),
             ),
           ),
-          const SizedBox(width: 12),
-          TextButton.icon(onPressed: _end, icon: const Icon(Icons.call_end, color: Colors.red), label: const Text('پایان و گزارش')),
+          const LanguageSwitcher(),
+          TextButton.icon(onPressed: _end, icon: const Icon(Icons.call_end, color: Colors.red), label: Text(context.t('end_and_report'))),
         ],
       ),
       body: Row(children: [
-        // ---------------- video + transcript
         Expanded(
           flex: 3,
           child: Column(children: [
@@ -156,7 +155,7 @@ class _DoctorConsoleScreenState extends State<DoctorConsoleScreen> {
               flex: 3,
               child: Container(
                 color: Colors.black,
-                child: remote != null ? lk.VideoTrackRenderer(remote) : const Center(child: Text('در انتظار بیمار…', style: TextStyle(color: Colors.white70))),
+                child: remote != null ? lk.VideoTrackRenderer(remote) : Center(child: Text(context.t('waiting_patient'), style: const TextStyle(color: Colors.white70))),
               ),
             ),
             Expanded(
@@ -175,7 +174,7 @@ class _DoctorConsoleScreenState extends State<DoctorConsoleScreen> {
                       child: RichText(
                         text: TextSpan(style: const TextStyle(color: Colors.black87, fontSize: 14), children: [
                           TextSpan(text: '$t  ', style: const TextStyle(color: Colors.black45, fontFeatures: [FontFeature.tabularFigures()])),
-                          TextSpan(text: s.speaker == 'clinician' ? 'درمانگر: ' : 'بیمار: ', style: TextStyle(fontWeight: FontWeight.w700, color: s.speaker == 'clinician' ? Colors.indigo : Colors.teal)),
+                          TextSpan(text: '${context.t(s.speaker == 'clinician' ? 'clinician' : 'patient')}: ', style: TextStyle(fontWeight: FontWeight.w700, color: s.speaker == 'clinician' ? Colors.indigo : Colors.teal)),
                           TextSpan(text: s.text),
                         ]),
                       ),
@@ -188,14 +187,13 @@ class _DoctorConsoleScreenState extends State<DoctorConsoleScreen> {
               color: Colors.grey.shade100,
               padding: const EdgeInsets.all(8),
               child: Row(children: [
-                Expanded(child: TextField(controller: noteCtl, decoration: const InputDecoration(hintText: 'یادداشت بالینی (فقط شما می‌نویسید)', isDense: true, border: OutlineInputBorder()))),
+                Expanded(child: TextField(controller: noteCtl, decoration: InputDecoration(hintText: context.t('note_hint'), isDense: true, border: const OutlineInputBorder()))),
                 const SizedBox(width: 8),
-                FilledButton.icon(onPressed: _mark, icon: const Icon(Icons.bookmark_add), label: const Text('علامت‌گذاری این لحظه')),
+                FilledButton.icon(onPressed: _mark, icon: const Icon(Icons.bookmark_add), label: Text(context.t('mark_moment'))),
               ]),
             ),
           ]),
         ),
-        // ---------------- timeline
         SizedBox(
           width: 420,
           child: Column(children: [
@@ -203,24 +201,24 @@ class _DoctorConsoleScreenState extends State<DoctorConsoleScreen> {
               padding: const EdgeInsets.all(8),
               child: Column(children: [
                 Wrap(spacing: 4, children: [
-                  for (final t in tierLabelsFa.keys)
+                  for (final t in tiers)
                     FilterChip(
-                      label: Text(tierLabelsFa[t]!, style: const TextStyle(fontSize: 11)),
+                      label: Text(context.t('tier_$t'), style: const TextStyle(fontSize: 11)),
                       selected: !hiddenTiers.contains(t),
                       selectedColor: (tierColors[t] ?? Colors.grey).withOpacity(0.2),
                       onSelected: (v) => setState(() => v ? hiddenTiers.remove(t) : hiddenTiers.add(t)),
                     ),
                 ]),
                 Row(children: [
-                  const Text('حداقل اطمینان', style: TextStyle(fontSize: 12)),
-                  Expanded(child: Slider(value: minConfidence, min: 0.3, max: 0.95, divisions: 13, label: '${(minConfidence * 100).round()}٪', onChanged: (v) => setState(() => minConfidence = v))),
+                  Text(context.t('min_confidence'), style: const TextStyle(fontSize: 12)),
+                  Expanded(child: Slider(value: minConfidence, min: 0.3, max: 0.95, divisions: 13, label: '${(minConfidence * 100).round()}%', onChanged: (v) => setState(() => minConfidence = v))),
                 ]),
               ]),
             ),
             const Divider(height: 1),
             Expanded(
               child: visible.isEmpty
-                  ? const Center(child: Padding(padding: EdgeInsets.all(24), child: Text('هنوز مشاهده‌ای ثبت نشده. تا ساخته شدن خط پایه (حدود ۵ دقیقه) فقط پرچم‌های کیفیت نمایش داده می‌شوند.', textAlign: TextAlign.center, style: TextStyle(color: Colors.black54))))
+                  ? Center(child: Padding(padding: const EdgeInsets.all(24), child: Text(context.t('no_events_yet'), textAlign: TextAlign.center, style: const TextStyle(color: Colors.black54))))
                   : ListView.builder(
                       padding: const EdgeInsets.symmetric(horizontal: 8),
                       itemCount: visible.length,
@@ -237,7 +235,7 @@ class _DoctorConsoleScreenState extends State<DoctorConsoleScreen> {
             Container(
               padding: const EdgeInsets.all(8),
               color: Colors.grey.shade100,
-              child: const Text('همه موارد «مشاهده» هستند، نه تشخیص. مقایسه فقط با خط پایه همین بیمار در همین جلسه انجام می‌شود.', style: TextStyle(fontSize: 11, color: Colors.black54), textAlign: TextAlign.center),
+              child: Text(context.t('console_footer'), style: const TextStyle(fontSize: 11, color: Colors.black54), textAlign: TextAlign.center),
             ),
           ]),
         ),

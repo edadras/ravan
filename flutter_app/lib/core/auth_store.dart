@@ -36,8 +36,8 @@ class AuthStore extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> register(String name, String email, String password) async {
-    final res = await api.post('/auth/register', {'name': name, 'email': email, 'password': password, 'locale': 'fa'}) as Map<String, dynamic>;
+  Future<void> register(String name, String email, String password, String locale) async {
+    final res = await api.post('/auth/register', {'name': name, 'email': email, 'password': password, 'locale': locale}) as Map<String, dynamic>;
     api.token = res['token'] as String;
     (await SharedPreferences.getInstance()).setString('token', api.token!);
     user = CurrentUser.fromJson(res['user'] as Map<String, dynamic>);

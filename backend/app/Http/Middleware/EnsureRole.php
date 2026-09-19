@@ -12,7 +12,7 @@ class EnsureRole
     {
         $user = $request->user();
         if (! $user || ! in_array($user->role->value, $roles, true)) {
-            abort(403, 'forbidden for role');
+            abort(403, __('messages.forbidden_role'));
         }
 
         return $next($request);

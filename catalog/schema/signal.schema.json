@@ -31,7 +31,7 @@
     "quality_gates": {"type": "object", "additionalProperties": {"type": ["number", "boolean"]}},
     "possible_contexts": {
       "type": "array",
-      "items": {"type": "object", "required": ["key", "en", "fa"], "properties": {"key": {"type": "string"}, "en": {"type": "string"}, "fa": {"type": "string"}}}
+      "items": {"type": "object", "required": ["key", "en", "fa", "tr"], "properties": {"key": {"type": "string"}, "en": {"type": "string"}, "fa": {"type": "string"}, "tr": {"type": "string"}}}
     },
     "clinical_rationale": {"$ref": "#/$defs/bilingual"},
     "clinical_note": {"$ref": "#/$defs/bilingual"},
@@ -40,6 +40,6 @@
     "patient_facing": {"const": false}
   },
   "$defs": {
-    "bilingual": {"type": "object", "required": ["en", "fa"], "properties": {"en": {"type": "string"}, "fa": {"type": "string"}}}
+    "bilingual": {"type": "object", "required": ["en", "fa", "tr"], "properties": {"en": {"type": "string"}, "fa": {"type": "string"}, "tr": {"type": "string"}}}
   }
 }

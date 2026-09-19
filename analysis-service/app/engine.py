@@ -27,6 +27,7 @@ log = logging.getLogger("ravan.engine")
 CLINICIAN_PROMPT = {
     "en": "Consider whether this change is clinically relevant; ask for context if appropriate.",
     "fa": "بررسی کنید آیا این تغییر از نظر بالینی مرتبط است؛ در صورت مناسب بودن، زمینه را بپرسید.",
+    "tr": "Bu değişimin klinik olarak anlamlı olup olmadığını değerlendirin; uygunsa bağlamı sorun.",
 }
 QUALITY_KEYS = ("face_quality", "pose_quality", "hand_quality", "audio_quality", "asr_quality")
 TICK_S = 1.0
@@ -255,7 +256,7 @@ class SessionAnalyzer:
             baseline_value=_r(c.baseline), observed_value=_r(c.observed), delta=_r(c.delta), delta_ratio=_r(c.delta_ratio),
             z_score=_r(c.z), unit=c.unit, confidence=c.confidence,
             quality={k: self.quality[k] for k in QUALITY_KEYS + ("network_rtt_ms",) if k in self.quality},
-            context=ctx, possible_contexts=[{"key": p["key"], "en": p["en"], "fa": p["fa"]} for p in sig["possible_contexts"]],
+            context=ctx, possible_contexts=[{"key": p["key"], "en": p["en"], "fa": p["fa"], "tr": p["tr"]} for p in sig["possible_contexts"]],
             clinical_rationale=sig.get("clinical_rationale", {}), clinical_note=sig["clinical_note"], clinician_prompt=CLINICIAN_PROMPT,
             member_events=member_ids or [],
         )

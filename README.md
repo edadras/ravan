@@ -1,4 +1,10 @@
-# روان — پلتفرم مشاوره روان‌شناسی آنلاین با تحلیل رفتاری مشاهده‌ای
+# روان / Ravan — پلتفرم مشاوره روان‌شناسی آنلاین با تحلیل رفتاری مشاهده‌ای
+
+**سه‌زبانه در همه بخش‌ها: فارسی · English · Türkçe** — رابط کاربری، متن رضایت‌ها، کاتالوگ ۲۷۹ سیگنال، رویدادهای زنده، گزارش پایان جلسه، پیام‌های API و مستندات. جزئیات: [`docs/09-i18n.md`](docs/09-i18n.md).
+
+> **English.** Ravan is an online mental-health counselling platform (Laravel + MySQL backend, Flutter web app, Python analysis service). Patients choose an admin-verified clinician and hold text, audio or video sessions. With the patient's explicit, separately revocable consent, the patient's browser extracts descriptive numbers (head, gaze, face, posture, hands, voice) on device — never raw video — and the analysis service compares them **only with the patient's own baseline in that session**, surfacing *observations* with quantities, quality and benign explanations to the clinician, never diagnoses. Full transcript, clinician review (relevant / dismiss / note) and an end-of-session draft the clinician must accept, edit or reject. Everything is trilingual (fa/en/tr); see [`docs/09-i18n.md`](docs/09-i18n.md).
+>
+> **Türkçe.** Ravan, çevrim içi bir ruh sağlığı danışmanlık platformudur (Laravel + MySQL arka uç, Flutter web uygulaması, Python analiz hizmeti). Danışanlar yönetici tarafından doğrulanmış bir klinisyen seçer ve yazılı, sesli veya görüntülü seans yapar. Danışanın açık ve ayrıca geri çekilebilir onayıyla, danışanın tarayıcısı cihaz üzerinde betimleyici sayılar (baş, bakış, yüz, duruş, eller, ses) çıkarır — asla ham video değil — ve analiz hizmeti bunları **yalnızca danışanın o seanstaki kendi taban çizgisiyle** karşılaştırarak klinisyene miktar, kalite ve zararsız açıklamalarla *gözlemler* sunar, asla tanı değil. Tam transkript, klinisyen incelemesi (ilgili / reddet / not) ve klinisyenin onaylaması, düzenlemesi veya reddetmesi gereken seans sonu taslağı. Her şey üç dillidir (fa/en/tr); bkz. [`docs/09-i18n.md`](docs/09-i18n.md).
 
 سامانه‌ای برای برگزاری جلسات متنی/صوتی/تصویری بین مراجع و روان‌شناس/روان‌پزشکِ احراز هویت‌شده، که با **رضایت صریح مراجع** حالات بدن، چهره و صدا را در طول جلسه به‌صورت **مشاهده (نه تشخیص)** برای درمانگر توصیف می‌کند، لاگ کامل مکالمه را نگه می‌دارد و در پایان جلسه پیش‌نویس گزارشی برای بازبینی درمانگر می‌سازد.
 
@@ -8,11 +14,11 @@
 
 | مسیر | محتوا |
 |---|---|
-| [`catalog/`](catalog/) | **کاتالوگ سیگنال‌های رفتاری**: ۲۷۹ سیگنال نام‌گذاری‌شده در ۱۹ گروه (سر، چشم/نگاه، ابرو، دهان/فک، پویایی چهره، بالاتنه، شانه/گردن، دست‌ها، ژست، پایین‌تنه، حرکت کل بدن، عروض گفتار، کیفیت صدا، روانی/زبان، نوبت‌گیری، هم‌زمانی بین‌فردی، خوشه‌های چندوجهی، کیفیت فنی، عملیاتی) با مشخصات آشکارساز، دروازه‌های کیفیت، زمینه‌های بی‌خطر، دلیل بالینی (فارسی/انگلیسی) و استنتاج‌های ممنوع؛ به‌علاوه واژه‌نامه ویژگی‌ها (۴۷۸ نقطه چهره، ۳۳ نقطه بدن، ۲×۲۱ نقطه دست، ۵۲ بلندشیپ، ۳۲ واحد حرکتی FACS، ۱۸۱ ویژگی مشتق، توصیف‌گرهای صوتی) و فضای پارامتری با **~۴۵۰ میلیون پارامتر قابل آدرس‌دهی**. |
-| [`analysis-service/`](analysis-service/) | سرویس تحلیل (Python/FastAPI): خط پایه شخصی مقاوم، آشکارسازهای مبتنی بر کاتالوگ، تلفیق چندوجهی، پرچم‌های محتوای متن، پیش‌نویس گزارش با نگهبان زبانی. ۱۵ تست. |
-| [`backend/`](backend/) | بک‌اند Laravel 13 + MySQL: احراز هویت، فهرست درمانگران تأییدشده توسط ادمین، نوبت‌دهی، جلسه، رضایت‌های نسخه‌دار، وب‌هوک امضاشده از سرویس تحلیل، تایم‌لاین رویدادها (فقط درمانگر)، رونویسی، چت، گزارش با تأیید/ویرایش/رد، لاگ ممیزی و دسترسی. ۹ تست. |
-| [`flutter_app/`](flutter_app/) | وب‌اپ Flutter (فارسی/RTL) برای مراجع، درمانگر و ادمین؛ استخراج ویژگی روی دستگاه با MediaPipe (`web/vision_worker.js`, `web/audio_worker.js`). |
-| [`docs/`](docs/) | طرح کامل: معماری، پایگاه داده، API، خط لوله زنده، راهنمای کاتالوگ، حریم خصوصی و امنیت، ارائه‌دهنده هوش مصنوعی، نقشه راه. |
+| [`catalog/`](catalog/) | **کاتالوگ سیگنال‌های رفتاری** (سه‌زبانه fa/en/tr با اعتبارسنجی کامل بودن): ۲۷۹ سیگنال نام‌گذاری‌شده در ۱۹ گروه (سر، چشم/نگاه، ابرو، دهان/فک، پویایی چهره، بالاتنه، شانه/گردن، دست‌ها، ژست، پایین‌تنه، حرکت کل بدن، عروض گفتار، کیفیت صدا، روانی/زبان، نوبت‌گیری، هم‌زمانی بین‌فردی، خوشه‌های چندوجهی، کیفیت فنی، عملیاتی) با مشخصات آشکارساز، دروازه‌های کیفیت، زمینه‌های بی‌خطر، دلیل بالینی (فارسی/انگلیسی/ترکی) و استنتاج‌های ممنوع؛ به‌علاوه واژه‌نامه ویژگی‌ها (۴۷۸ نقطه چهره، ۳۳ نقطه بدن، ۲×۲۱ نقطه دست، ۵۲ بلندشیپ، ۳۲ واحد حرکتی FACS، ۱۸۱ ویژگی مشتق، توصیف‌گرهای صوتی) و فضای پارامتری با **~۴۵۰ میلیون پارامتر قابل آدرس‌دهی**. |
+| [`analysis-service/`](analysis-service/) | سرویس تحلیل (Python/FastAPI): خط پایه شخصی مقاوم، آشکارسازهای مبتنی بر کاتالوگ، تلفیق چندوجهی، پرچم‌های محتوای متن، پیش‌نویس گزارش با نگهبان زبانی. ۱۶ تست. |
+| [`backend/`](backend/) | بک‌اند Laravel 13 + MySQL: احراز هویت، فهرست درمانگران تأییدشده توسط ادمین، نوبت‌دهی، جلسه، رضایت‌های نسخه‌دار، وب‌هوک امضاشده از سرویس تحلیل، تایم‌لاین رویدادها (فقط درمانگر)، رونویسی، چت، گزارش با تأیید/ویرایش/رد، لاگ ممیزی و دسترسی. ۱۰ تست. |
+| [`flutter_app/`](flutter_app/) | وب‌اپ Flutter (فارسی RTL / انگلیسی / ترکی با انتخابگر زبان) برای مراجع، درمانگر و ادمین؛ استخراج ویژگی روی دستگاه با MediaPipe (`web/vision_worker.js`, `web/audio_worker.js`). |
+| [`docs/`](docs/) | طرح کامل: معماری، پایگاه داده، API، خط لوله زنده، راهنمای کاتالوگ، حریم خصوصی و امنیت، ارائه‌دهنده هوش مصنوعی، نقشه راه، سه‌زبانه بودن. |
 
 ## اجرای سریع (توسعه)
 
@@ -63,4 +69,4 @@ cd flutter_app && flutter pub get && flutter run -d chrome --dart-define=RAVAN_A
 ## مستندات
 
 - [۰۱ معماری](docs/01-architecture.md) · [۰۲ پایگاه داده](docs/02-database.md) · [۰۳ API](docs/03-api.md) · [۰۴ خط لوله زنده](docs/04-realtime-pipeline.md)
-- [۰۵ راهنمای کاتالوگ سیگنال‌ها](docs/05-behavior-catalog.md) · [۰۶ حریم خصوصی و امنیت](docs/06-privacy-security.md) · [۰۷ ارائه‌دهنده هوش مصنوعی](docs/07-ai-provider.md) · [۰۸ نقشه راه](docs/08-roadmap.md)
+- [۰۵ راهنمای کاتالوگ سیگنال‌ها](docs/05-behavior-catalog.md) · [۰۶ حریم خصوصی و امنیت](docs/06-privacy-security.md) · [۰۷ ارائه‌دهنده هوش مصنوعی](docs/07-ai-provider.md) · [۰۸ نقشه راه](docs/08-roadmap.md) · [۰۹ سه‌زبانه بودن](docs/09-i18n.md)

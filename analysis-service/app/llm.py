@@ -25,6 +25,7 @@ FORBIDDEN_PATTERNS = [
     r"\b(lie|lying|deception|deceptive|dishonest)\b",
     r"\b(genuine|fake)\s+smile\b",
     r"(تشخیص|اختلال|دروغ|فریب|افسرده است|مضطرب است|خطر خودکشی)",
+    r"(tanı|bozukluk|yalan|aldat|depresif|kaygılı|intihar riski)",
 ]
 
 SYSTEM_PROMPT = """You draft a neutral end-of-session observation summary for a licensed mental-health clinician.
@@ -36,8 +37,8 @@ Rules you must follow:
 3. Always attribute changes to the patient's own baseline in this session, never to population norms.
 4. List benign or technical explanations before any clinical one.
 5. Explicit safety-relevant statements are quoted verbatim with timestamps, without interpretation.
-6. Write in the requested language, concise, with timestamps, as a draft the clinician will edit.
-7. End with: 'Draft for clinician review. Not a clinical assessment.'"""
+6. Write in the requested language (fa = Persian, en = English, tr = Turkish), concise, with timestamps, as a draft the clinician will edit.
+7. End with the sentence 'Draft for clinician review. Not a clinical assessment.' translated into the requested language."""
 
 
 class Provider(Protocol):
@@ -58,6 +59,14 @@ class NullProvider:
             for s in data["safety"]:
                 lines.append(f"- {s['t']}: عبارت صریح در متن: «{s['text']}» — برای بازبینی درمانگر.")
             lines.append("پیش‌نویس برای بازبینی درمانگر. ارزیابی بالینی نیست.")
+        elif language == "tr":
+            lines.append(f"Seans süresi: {data['duration_min']} dk. Hastanın konuşma payı: %{data['patient_speech_share']}.")
+            lines.append(f"Taban çizgisine göre {data['n_change_events']} değişim ve {data['n_clusters']} çok kanallı küme kaydedildi.")
+            for c in data["strongest"][:5]:
+                lines.append(f"- {c['t']}: {c['observation_tr']} (gözlenen {c['observed']}, taban çizgisi {c['baseline']}; kalite {c['quality']}). Olası bağlamlar: {c['contexts_tr']}.")
+            for s in data["safety"]:
+                lines.append(f"- {s['t']}: transkriptte açık ifade: \"{s['text']}\" — klinisyen incelemesi için.")
+            lines.append("Klinisyen incelemesi için taslak. Klinik bir değerlendirme değildir.")
         else:
             lines.append(f"Session length {data['duration_min']} min. Patient speech share {data['patient_speech_share']}%.")
             lines.append(f"{data['n_change_events']} changes from baseline and {data['n_clusters']} multimodal clusters were recorded.")

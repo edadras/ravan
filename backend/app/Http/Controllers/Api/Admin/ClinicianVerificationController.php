@@ -42,7 +42,7 @@ class ClinicianVerificationController extends Controller
             'session_fee' => ['integer', 'min:0'],
             'session_length_min' => ['integer', 'between:15,180'],
             'session_modes' => ['array'], 'session_modes.*' => ['in:text,audio,video'],
-            'bio_fa' => ['nullable', 'string'], 'bio_en' => ['nullable', 'string'],
+            'bio_fa' => ['nullable', 'string'], 'bio_en' => ['nullable', 'string'], 'bio_tr' => ['nullable', 'string'],
         ]);
         $user = User::create(['name' => $data['name'], 'email' => $data['email'], 'phone' => $data['phone'] ?? null,
             'password' => Str::random(32), 'role' => Role::Clinician->value]);
@@ -88,7 +88,7 @@ class ClinicianVerificationController extends Controller
 
     public function specialtiesStore(Request $request): JsonResponse
     {
-        $data = $request->validate(['slug' => ['required', 'alpha_dash', 'unique:specialties,slug'], 'name_fa' => ['required'], 'name_en' => ['required']]);
+        $data = $request->validate(['slug' => ['required', 'alpha_dash', 'unique:specialties,slug'], 'name_fa' => ['required'], 'name_en' => ['required'], 'name_tr' => ['required']]);
 
         return response()->json(Specialty::create($data), 201);
     }

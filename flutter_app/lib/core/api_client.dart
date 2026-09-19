@@ -12,15 +12,18 @@ class ApiException implements Exception {
 }
 
 /// Minimal JSON client for the Laravel API. Token is a Sanctum personal access token.
+/// Every request carries `Accept-Language` so server-side messages come back in the UI language.
 class ApiClient {
-  ApiClient({required this.baseUrl});
+  ApiClient({required this.baseUrl, required this.language});
 
   final String baseUrl;
+  final String Function() language;
   String? token;
 
   Map<String, String> get _headers => {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
+        'Accept-Language': language(),
         if (token != null) 'Authorization': 'Bearer $token',
       };
 

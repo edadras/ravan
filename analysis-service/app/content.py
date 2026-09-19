@@ -22,22 +22,33 @@ SAFETY_LEXICON = {
         r"\bkill myself\b", r"\bsuicid", r"\bend my life\b", r"\bwant to die\b", r"\bhurt myself\b", r"\bself[- ]harm\b",
         r"\bwish i (was|were) dead\b", r"\bkill (him|her|them|someone)\b", r"\bhits? me\b", r"\bthreaten(s|ed)? me\b", r"\babus(e|ed|ing)\b",
     ],
+    "tr": [
+        r"intihar", r"kendimi öldür", r"ölmek istiyorum", r"hayatıma son ver", r"kendime zarar ver", r"kendimi kes",
+        r"yaşamak istemiyorum", r"keşke ölsem", r"keşke olmasam", r"onu öldür", r"birini öldür", r"beni dövüyor", r"bana vuruyor",
+        r"beni tehdit", r"cinsel taciz", r"tecavüz", r"istismar",
+    ],
 }
 
 NEGATIVE_LEXICON = {
     "fa": ["غمگین", "ناراحت", "بد", "خسته", "تنها", "ترس", "نگران", "عصبی", "بی‌فایده", "افتضاح", "وحشتناک", "گریه", "درد"],
     "en": ["sad", "upset", "bad", "tired", "alone", "afraid", "worried", "nervous", "useless", "awful", "terrible", "cry", "pain"],
+    "tr": ["üzgün", "mutsuz", "kötü", "yorgun", "yalnız", "korku", "korkuyorum", "endişeli", "sinirli", "gergin", "işe yaramaz", "berbat", "korkunç", "ağlıyorum", "acı"],
 }
 POSITIVE_LEXICON = {
     "fa": ["خوب", "خوشحال", "آرام", "امید", "عالی", "راحت", "لذت", "دوست دارم", "خوشبخت"],
     "en": ["good", "happy", "calm", "hope", "great", "relaxed", "enjoy", "love", "fine"],
+    "tr": ["iyi", "mutlu", "sakin", "umut", "harika", "rahat", "keyif", "seviyorum", "huzurlu", "güzel"],
 }
 ABSOLUTIST = {"fa": ["همیشه", "هرگز", "هیچ‌وقت", "هیچوقت", "کاملاً", "کاملا", "همه", "هیچ‌کس", "هیچکس", "اصلاً", "اصلا"],
-              "en": ["always", "never", "completely", "totally", "everyone", "nobody", "nothing", "entirely"]}
+              "en": ["always", "never", "completely", "totally", "everyone", "nobody", "nothing", "entirely"],
+              "tr": ["hep", "her zaman", "asla", "hiçbir zaman", "tamamen", "herkes", "hiç kimse", "hiçbir şey", "kesinlikle"]}
 HEDGES = {"fa": ["شاید", "فکر کنم", "احتمالاً", "احتمالا", "به نظرم", "نمی‌دونم", "نمیدونم", "یه جورایی"],
-          "en": ["maybe", "i guess", "probably", "i think", "sort of", "kind of", "i don't know"]}
-FIRST_PERSON = {"fa": ["من", "منو", "مرا", "خودم", "برام", "بهم"], "en": ["i", "me", "my", "myself", "mine"]}
-MINIMAL = {"fa": ["نه", "آره", "بله", "نمی‌دونم", "نمیدونم", "هیچی", "خوبم", "عادی"], "en": ["no", "yes", "yeah", "nothing", "fine", "ok", "okay", "dunno"]}
+          "en": ["maybe", "i guess", "probably", "i think", "sort of", "kind of", "i don't know"],
+          "tr": ["belki", "sanırım", "galiba", "herhalde", "bence", "bilmiyorum", "bir bakıma", "gibi"]}
+FIRST_PERSON = {"fa": ["من", "منو", "مرا", "خودم", "برام", "بهم"], "en": ["i", "me", "my", "myself", "mine"],
+                "tr": ["ben", "beni", "bana", "benim", "kendim", "kendimi", "kendime"]}
+MINIMAL = {"fa": ["نه", "آره", "بله", "نمی‌دونم", "نمیدونم", "هیچی", "خوبم", "عادی"], "en": ["no", "yes", "yeah", "nothing", "fine", "ok", "okay", "dunno"],
+           "tr": ["hayır", "evet", "yok", "hiç", "hiçbir şey", "iyiyim", "normal", "bilmem", "tamam"]}
 
 
 @dataclass
@@ -52,15 +63,23 @@ class ContentFeatures:
     safety_hits: list[str]
 
 
-def _tokens(text: str) -> list[str]:
-    return [t for t in re.split(r"[\s،,.!?؟:;()\[\]\"'«»]+", text.lower()) if t]
+def _lower(text: str, lang: str) -> str:
+    # Turkish dotted/dotless i: casefold before matching lexicons
+    if lang == "tr":
+        return text.replace("I", "ı").replace("İ", "i").lower()
+    return text.lower()
+
+
+def _tokens(text: str, lang: str = "en") -> list[str]:
+    return [t for t in re.split(r"[\s،,.!?؟:;()\[\]\"'«»]+", _lower(text, lang)) if t]
 
 
 def analyze(text: str, language: str = "fa", is_answer_to_open_question: bool = False) -> ContentFeatures:
     lang = language if language in SAFETY_LEXICON else "en"
-    toks = _tokens(text)
+    toks = _tokens(text, lang)
     n = max(len(toks), 1)
     joined = " ".join(toks)
+    lowered = _lower(text, lang)
 
     def ratio(lex: list[str]) -> float:
         return sum(1 for t in toks if t in lex) / n
@@ -68,7 +87,7 @@ def analyze(text: str, language: str = "fa", is_answer_to_open_question: bool = 
     def phrase_ratio(lex: list[str]) -> float:
         return sum(joined.count(p) for p in lex) / n
 
-    hits = [p for p in SAFETY_LEXICON[lang] if re.search(p, text.lower())]
+    hits = [p for p in SAFETY_LEXICON[lang] if re.search(p, lowered)]
     minimal = is_answer_to_open_question and len(toks) <= 2 and (not toks or toks[0] in MINIMAL[lang] or len(toks) <= 2)
     return ContentFeatures(
         word_count=len(toks),

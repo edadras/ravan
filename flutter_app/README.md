@@ -1,6 +1,6 @@
 # Ravan Flutter web app
 
-Patient, clinician and admin front-end for the Ravan platform (Persian, RTL).
+Patient, clinician and admin front-end for the Ravan platform. Trilingual: Persian (RTL), English and Turkish; the language switcher in every app bar persists the choice, sets text direction, sends `Accept-Language` to the API and selects the matching consent texts and catalog strings (`lib/core/l10n.dart`).
 
 ```
 flutter pub get

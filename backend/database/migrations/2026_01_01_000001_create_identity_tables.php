@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::table('users', function (Blueprint $table) {
             $table->string('role', 20)->default('patient')->index()->after('password');
             $table->string('phone', 32)->nullable()->unique()->after('email');
-            $table->string('locale', 8)->default('fa')->after('role');
+            $table->string('locale', 8)->default('fa')->after('role'); // fa | en | tr
             $table->timestamp('last_login_at')->nullable();
             $table->boolean('is_active')->default(true);
             $table->softDeletes();
@@ -36,6 +36,7 @@ return new class extends Migration
             $table->string('slug', 64)->unique();
             $table->string('name_fa');
             $table->string('name_en');
+            $table->string('name_tr');
             $table->timestamps();
         });
 
@@ -48,6 +49,7 @@ return new class extends Migration
             $table->date('license_expires_at')->nullable();
             $table->text('bio_fa')->nullable();
             $table->text('bio_en')->nullable();
+            $table->text('bio_tr')->nullable();
             $table->json('languages')->nullable();
             $table->unsignedInteger('years_experience')->default(0);
             $table->unsignedInteger('session_fee')->default(0);     // smallest currency unit

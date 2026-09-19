@@ -40,7 +40,7 @@ class SessionController extends Controller
     {
         $this->authorize('join', $session);
         $user = $request->user();
-        abort_if(in_array($session->status, [SessionStatus::Ended, SessionStatus::Cancelled], true), 409, 'session is closed');
+        abort_if(in_array($session->status, [SessionStatus::Ended, SessionStatus::Cancelled], true), 409, __('messages.session_closed'));
 
         SessionParticipant::updateOrCreate(
             ['therapy_session_id' => $session->id, 'user_id' => $user->id],
@@ -82,14 +82,14 @@ class SessionController extends Controller
     public function startAnalysis(Request $request, TherapySession $session): JsonResponse
     {
         $this->authorize('join', $session);
-        abort_unless($this->consent->analysisAllowed($session), 403, 'analysis consent missing');
-        abort_unless($session->status === SessionStatus::Live, 409, 'session not live');
+        abort_unless($this->consent->analysisAllowed($session), 403, __('messages.analysis_consent_missing'));
+        abort_unless($session->status === SessionStatus::Live, 409, __('messages.session_not_live'));
         if (! $session->analysis_session_ref) {
             try {
                 $this->analysis->startSession($session);
             } catch (\Throwable $e) {
                 Log::error('analysis start failed', ['session' => $session->uuid, 'err' => $e->getMessage()]);
-                abort(502, 'analysis service unavailable');
+                abort(502, __('messages.analysis_unavailable'));
             }
             $session->update(['analysis_session_ref' => $session->uuid, 'analysis_started_at' => now()]);
         } elseif ($session->analysis_paused_at) {

@@ -28,6 +28,7 @@ class AnalysisEventController extends Controller
             'observation' => ['required', 'array'],
             'observation.en' => ['required', 'string'],
             'observation.fa' => ['required', 'string'],
+            'observation.tr' => ['required', 'string'],
             'baseline_value' => ['nullable', 'numeric'],
             'observed_value' => ['nullable', 'numeric'],
             'delta' => ['nullable', 'numeric'],
@@ -42,7 +43,7 @@ class AnalysisEventController extends Controller
             'clinical_note' => ['nullable', 'array'],
             'member_events' => ['nullable', 'array'],
         ]);
-        abort_if($request->input('diagnostic_claim') !== null, 422, 'diagnostic claims are not accepted');
+        abort_if($request->input('diagnostic_claim') !== null, 422, __('messages.diagnostic_claim_rejected'));
 
         $session = TherapySession::where('uuid', $data['session_id'])->firstOrFail();
         if (! $session->analysis_enabled && $data['tier'] !== 'quality') {
@@ -65,6 +66,7 @@ class AnalysisEventController extends Controller
             't_end_ms' => $data['t_end_ms'],
             'observation_en' => $data['observation']['en'],
             'observation_fa' => $data['observation']['fa'],
+            'observation_tr' => $data['observation']['tr'],
             'baseline_value' => $data['baseline_value'] ?? null,
             'observed_value' => $data['observed_value'] ?? null,
             'delta' => $data['delta'] ?? null,
@@ -77,8 +79,10 @@ class AnalysisEventController extends Controller
             'possible_contexts' => $data['possible_contexts'],
             'clinical_rationale_en' => $data['clinical_rationale']['en'] ?? null,
             'clinical_rationale_fa' => $data['clinical_rationale']['fa'] ?? null,
+            'clinical_rationale_tr' => $data['clinical_rationale']['tr'] ?? null,
             'clinical_note_en' => $data['clinical_note']['en'] ?? null,
             'clinical_note_fa' => $data['clinical_note']['fa'] ?? null,
+            'clinical_note_tr' => $data['clinical_note']['tr'] ?? null,
             'member_event_uuids' => $data['member_events'] ?? [],
             'transcript_segment_id' => $segment?->id,
         ]);

@@ -16,11 +16,12 @@ class DemoSeeder extends Seeder
     public function run(): void
     {
         foreach ([
-            ['anxiety', 'اضطراب', 'Anxiety'], ['depression', 'افسردگی', 'Depression'], ['couples', 'زوج‌درمانی', 'Couples therapy'],
-            ['child', 'کودک و نوجوان', 'Child & adolescent'], ['trauma', 'تروما', 'Trauma'], ['addiction', 'اعتیاد', 'Addiction'],
-            ['sleep', 'خواب', 'Sleep'], ['ocd', 'وسواس', 'OCD'],
-        ] as [$slug, $fa, $en]) {
-            Specialty::updateOrCreate(['slug' => $slug], ['name_fa' => $fa, 'name_en' => $en]);
+            ['anxiety', 'اضطراب', 'Anxiety', 'Kaygı'], ['depression', 'افسردگی', 'Depression', 'Depresyon'],
+            ['couples', 'زوج‌درمانی', 'Couples therapy', 'Çift terapisi'], ['child', 'کودک و نوجوان', 'Child & adolescent', 'Çocuk ve ergen'],
+            ['trauma', 'تروما', 'Trauma', 'Travma'], ['addiction', 'اعتیاد', 'Addiction', 'Bağımlılık'],
+            ['sleep', 'خواب', 'Sleep', 'Uyku'], ['ocd', 'وسواس', 'OCD', 'OKB'],
+        ] as [$slug, $fa, $en, $tr]) {
+            Specialty::updateOrCreate(['slug' => $slug], ['name_fa' => $fa, 'name_en' => $en, 'name_tr' => $tr]);
         }
 
         User::updateOrCreate(['email' => 'admin@ravan.local'], ['name' => 'Admin', 'password' => 'change-me-please', 'role' => Role::Admin->value]);
@@ -28,7 +29,7 @@ class DemoSeeder extends Seeder
         $clin = User::updateOrCreate(['email' => 'dr.sara@ravan.local'], ['name' => 'دکتر سارا احمدی', 'password' => 'change-me-please', 'role' => Role::Clinician->value]);
         $profile = ClinicianProfile::updateOrCreate(['user_id' => $clin->id], [
             'title' => 'روان‌شناس بالینی', 'license_number' => 'PS-12345', 'license_authority' => 'سازمان نظام روان‌شناسی و مشاوره',
-            'bio_fa' => 'روان‌شناس بالینی با ۱۲ سال سابقه در درمان اضطراب و افسردگی.', 'languages' => ['fa', 'en'],
+            'bio_fa' => 'روان‌شناس بالینی با ۱۲ سال سابقه در درمان اضطراب و افسردگی.', 'bio_en' => 'Clinical psychologist with 12 years of experience in anxiety and depression.', 'bio_tr' => 'Kaygı ve depresyon alanında 12 yıllık deneyime sahip klinik psikolog.', 'languages' => ['fa', 'en', 'tr'],
             'years_experience' => 12, 'session_fee' => 6000000, 'currency' => 'IRR', 'session_length_min' => 50,
             'session_modes' => ['text', 'audio', 'video'], 'verification_status' => VerificationStatus::Approved, 'verified_at' => now(),
         ]);

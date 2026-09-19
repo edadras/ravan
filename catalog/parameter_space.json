@@ -1,5 +1,5 @@
 {
-  "schema_version": "2.0.0",
+  "schema_version": "2.1.0",
   "explanation": {
     "en": "The catalog defines a few hundred named signals. Underneath, every primitive measurement (landmark coordinates, pairwise distances, blendshapes, action units, audio descriptors) is expanded across time windows, statistics, comparison methods and speaker states. Each combination is an individually addressable parameter with its own baseline, threshold and quality gate; the analysis service can materialise any of them on demand by parameter id. Named signals are curated views over this space.",
     "fa": "کاتالوگ چند صد سیگنال نام‌گذاری‌شده تعریف می‌کند. در زیر آن، هر اندازه‌گیری اولیه (مختصات نقاط، فاصله‌های جفتی، بلندشیپ‌ها، واحدهای حرکتی، توصیف‌گرهای صوتی) روی پنجره‌های زمانی، آماره‌ها، روش‌های مقایسه و وضعیت گوینده گسترش می‌یابد. هر ترکیب یک پارامتر مستقل با خط پایه، آستانه و دروازه کیفیت خودش است؛ سرویس تحلیل می‌تواند هر یک را با شناسه پارامتر به‌صورت درخواستی محاسبه کند. سیگنال‌های نام‌گذاری‌شده نماهای گزینش‌شده روی این فضا هستند."

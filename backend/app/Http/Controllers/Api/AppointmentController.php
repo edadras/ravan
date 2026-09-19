@@ -37,8 +37,8 @@ class AppointmentController extends Controller
             'patient_note' => ['nullable', 'string', 'max:2000'],
         ]);
         $profile = ClinicianProfile::findOrFail($data['clinician_profile_id']);
-        abort_unless($profile->isVerified() && $profile->accepts_new_patients, 422, 'clinician not available');
-        abort_unless(in_array($data['mode'], $profile->session_modes ?? ['video'], true), 422, 'mode not offered');
+        abort_unless($profile->isVerified() && $profile->accepts_new_patients, 422, __('messages.clinician_unavailable'));
+        abort_unless(in_array($data['mode'], $profile->session_modes ?? ['video'], true), 422, __('messages.mode_not_offered'));
 
         $appointment = Appointment::create([
             'patient_id' => $request->user()->id,

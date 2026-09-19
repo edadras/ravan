@@ -8,7 +8,7 @@
 | `users` | `role` (patient/clinician/admin)، `phone`، `locale`، `is_active`، soft delete |
 | `patient_profiles` | `pseudonym` (UUID برای سرویس تحلیل)، تولد/جنسیت (اختیاری)، زبان، منطقه زمانی، تماس اضطراری رمزنگاری‌شده |
 | `clinician_profiles` | عنوان، شماره/مرجع مجوز، انقضا، بیو، زبان‌ها، سابقه، هزینه، مدت جلسه، حالت‌ها، **`verification_status`** (pending/approved/rejected/suspended)، `verified_at`، پذیرش مراجع جدید، امتیاز |
-| `specialties`, `clinician_specialty` | تخصص‌ها |
+| `specialties`, `clinician_specialty` | تخصص‌ها (`name_fa/en/tr`) |
 | `clinician_documents` | مدارک (دیسک خصوصی، sha256) |
 | `clinician_verifications` | تاریخچه تصمیم‌های ادمین با `checked_items` |
 | `clinician_schedules`, `clinician_time_off` | برنامه هفتگی (۰=شنبه) و مرخصی |
@@ -29,10 +29,10 @@
 ## تحلیل رفتاری
 | جدول | نکات |
 |---|---|
-| `behavior_signals` | کاتالوگ (seed از `catalog/signal_catalog.json`): گروه، سطح، متن دوزبانه، ویژگی‌ها، آشکارساز، دروازه‌ها، زمینه‌ها، دلیل و توضیح بالینی، برچسب‌های ممنوع، نسخه |
+| `behavior_signals` | کاتالوگ (seed از `catalog/signal_catalog.json`): گروه، سطح، متن سه‌زبانه (fa/en/tr)، ویژگی‌ها، آشکارساز، دروازه‌ها، زمینه‌ها، دلیل و توضیح بالینی، برچسب‌های ممنوع، نسخه |
 | `clinician_signal_preferences` | خاموش کردن سیگنال/گروه یا حداقل اطمینان برای هر درمانگر |
 | `behavior_baselines` | میانه/سیگما/نرخ هر ویژگی به تفکیک حالت گوینده برای هر جلسه |
-| `behavior_events` | uuid، جلسه، سیگنال، گروه، سطح، بازه، مشاهده (fa/en)، خط پایه/فعلی/دلتا/نسبت/z، واحد، اطمینان، کیفیت، زمینه (گوینده، موضوع، سؤال قبلی، اعضای خوشه)، زمینه‌های محتمل، دلیل/توضیح بالینی، اعضا، پیوند به بخش متن، **`clinician_status`** |
+| `behavior_events` | uuid، جلسه، سیگنال، گروه، سطح، بازه، مشاهده (fa/en/tr)، خط پایه/فعلی/دلتا/نسبت/z، واحد، اطمینان، کیفیت، زمینه (گوینده، موضوع، سؤال قبلی، اعضای خوشه)، زمینه‌های محتمل، دلیل/توضیح بالینی، اعضا، پیوند به بخش متن، **`clinician_status`** |
 | `clinician_event_reviews` | «مرتبط/رد/یادداشت» + زمینه انتخاب‌شده |
 | `clinical_notes` | یادداشت‌های خودِ درمانگر (هرگز تولید هوش مصنوعی) |
 | `session_reports` | گزارش ساخت‌یافته سرویس تحلیل، پیش‌نویس، ارائه‌دهنده، موارد حذف‌شده توسط نگهبان، وضعیت |

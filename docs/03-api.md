@@ -2,6 +2,8 @@
 
 پایه: `/api`. احراز هویت: `Authorization: Bearer <sanctum token>`. پاسخ‌ها JSON.
 
+**زبان پاسخ**: `?lang=fa|en|tr` → هدر `Accept-Language` → `users.locale` → پیش‌فرض fa. پاسخ همیشه هدر `Content-Language` دارد. متن‌های کاتالوگ/رویداد با هر سه زبان (`observation_fa/en/tr`, `possible_contexts[*].fa/en/tr`) برگردانده می‌شوند تا کلاینت بدون درخواست مجدد زبان را عوض کند.
+
 ## عمومی
 | متد | مسیر | توضیح |
 |---|---|---|

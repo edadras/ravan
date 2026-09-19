@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/api_client.dart';
 import '../../core/auth_store.dart';
+import '../../core/l10n.dart';
 
 /// End-of-session report: structured observations + the AI *draft* the clinician must Accept / Edit / Reject.
 class ReportScreen extends StatefulWidget {
@@ -32,12 +33,12 @@ class _ReportScreenState extends State<ReportScreen> {
       final s = report!['structured'] as Map<String, dynamic>;
       items
         ..clear()
-        ..add({'key': 'ai_summary', 'ai_text': report!['ai_draft_summary'] ?? '', 'clinician_text': report!['ai_draft_summary'] ?? '', 'status': 'draft', 'title': 'پیش‌نویس خلاصه (هوش مصنوعی)'});
+        ..add({'key': 'ai_summary', 'ai_text': report!['ai_draft_summary'] ?? '', 'clinician_text': report!['ai_draft_summary'] ?? '', 'status': 'draft', 'title_key': 'ai_summary'});
       for (final c in ((s['strongest_changes'] ?? []) as List).take(10)) {
-        items.add({'key': 'change:${c['event_id']}', 'ai_text': '${c['t']} — ${c['observation']['fa']} (فعلی ${c['observed']} در برابر خط پایه ${c['baseline']})', 'clinician_text': '', 'status': 'draft', 'title': 'تغییر قابل توجه'});
+        items.add({'key': 'change:${c['event_id']}', 'ai_text': context.t('vs_baseline', {'t': c['t'], 'obs': context.pick(c['observation'] as Map<String, dynamic>?), 'cur': c['observed'], 'base': c['baseline']}), 'clinician_text': '', 'status': 'draft', 'title_key': 'notable_change'});
       }
       for (final c in ((s['clusters'] ?? []) as List)) {
-        items.add({'key': 'cluster:${c['event_id']}', 'ai_text': '${c['t']} — ${c['observation']['fa']}؛ اعضا: ${(c['members'] as List).length}', 'clinician_text': '', 'status': 'draft', 'title': 'خوشه چندوجهی'});
+        items.add({'key': 'cluster:${c['event_id']}', 'ai_text': '${c['t']} — ${context.pick(c['observation'] as Map<String, dynamic>?)}; ${context.t('members')}: ${(c['members'] as List).length}', 'clinician_text': '', 'status': 'draft', 'title_key': 'cluster'});
       }
       setState(() {});
     } on ApiException catch (e) {
@@ -51,29 +52,29 @@ class _ReportScreenState extends State<ReportScreen> {
       'summary': summaryCtl.text,
       'finalize': finalize,
     });
-    if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(finalize ? 'گزارش نهایی شد' : 'نسخه جدید ذخیره شد')));
+    if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.t(finalize ? 'finalized_msg' : 'saved_msg'))));
   }
 
   @override
   Widget build(BuildContext context) {
-    if (error != null) return Scaffold(appBar: AppBar(title: const Text('گزارش جلسه')), body: Center(child: Text(error!)));
+    if (error != null) return Scaffold(appBar: AppBar(title: Text(context.t('report'))), body: Center(child: Text(error!)));
     if (report == null) return const Scaffold(body: Center(child: CircularProgressIndicator()));
     final s = report!['structured'] as Map<String, dynamic>;
     final conv = (s['conversation'] ?? {}) as Map<String, dynamic>;
     String mmss(num ms) => '${(ms ~/ 60000).toString().padLeft(2, '0')}:${((ms ~/ 1000) % 60).toString().padLeft(2, '0')}';
     return Scaffold(
-      appBar: AppBar(title: const Text('گزارش جلسه — پیش‌نویس برای بازبینی درمانگر')),
+      appBar: AppBar(title: Text(context.t('report_title')), actions: const [LanguageSwitcher()]),
       body: ListView(padding: const EdgeInsets.all(16), children: [
         Card(
           child: Padding(
             padding: const EdgeInsets.all(12),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('مدت: ${mmss(s['duration_ms'] ?? 0)}'),
-              Text('گفتار درمانگر: ${mmss(conv['clinician_speaking_ms'] ?? 0)}   گفتار بیمار: ${mmss(conv['patient_speaking_ms'] ?? 0)}   سکوت: ${mmss(conv['silence_ms'] ?? 0)}'),
-              Text('تغییرات قابل توجه: ${s['behavioral_observations']?['notable_change_events'] ?? 0}   خوشه‌ها: ${s['behavioral_observations']?['clusters'] ?? 0}'),
-              Text('کیفیت خط پایه: ${(s['baseline']?['quality_fraction'] ?? 0)}   پوشش: ${s['baseline']?['coverage_s'] ?? 0} ثانیه', style: const TextStyle(color: Colors.black54)),
+              Text('${context.t('duration')}: ${mmss(s['duration_ms'] ?? 0)}'),
+              Text('${context.t('clinician_speech')}: ${mmss(conv['clinician_speaking_ms'] ?? 0)}   ${context.t('patient_speech')}: ${mmss(conv['patient_speaking_ms'] ?? 0)}   ${context.t('silence')}: ${mmss(conv['silence_ms'] ?? 0)}'),
+              Text('${context.t('notable_changes')}: ${s['behavioral_observations']?['notable_change_events'] ?? 0}   ${context.t('clusters')}: ${s['behavioral_observations']?['clusters'] ?? 0}'),
+              Text('${context.t('baseline_quality')}: ${(s['baseline']?['quality_fraction'] ?? 0)}   ${context.t('coverage')}: ${s['baseline']?['coverage_s'] ?? 0} ${context.t('seconds')}', style: const TextStyle(color: Colors.black54)),
               const SizedBox(height: 6),
-              Text((s['disclaimer']?['fa'] ?? '') as String, style: const TextStyle(fontSize: 12, color: Colors.deepOrange)),
+              Text(context.pick(s['disclaimer'] as Map<String, dynamic>?), style: const TextStyle(fontSize: 12, color: Colors.deepOrange)),
             ]),
           ),
         ),
@@ -83,12 +84,12 @@ class _ReportScreenState extends State<ReportScreen> {
             child: Padding(
               padding: const EdgeInsets.all(12),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(it['title'] as String, style: const TextStyle(fontWeight: FontWeight.w700)),
+                Text(context.t(it['title_key'] as String), style: const TextStyle(fontWeight: FontWeight.w700)),
                 const SizedBox(height: 4),
                 Text(it['ai_text'] as String, style: const TextStyle(fontSize: 13)),
                 if (it['status'] == 'edited')
                   TextField(
-                    decoration: const InputDecoration(labelText: 'متن شما', border: OutlineInputBorder()),
+                    decoration: InputDecoration(labelText: context.t('your_text'), border: const OutlineInputBorder()),
                     maxLines: 3,
                     controller: TextEditingController(text: it['clinician_text'] as String),
                     onChanged: (v) => it['clinician_text'] = v,
@@ -96,24 +97,20 @@ class _ReportScreenState extends State<ReportScreen> {
                 Row(children: [
                   for (final st in const ['accepted', 'edited', 'rejected'])
                     Padding(
-                      padding: const EdgeInsets.only(left: 6),
-                      child: ChoiceChip(
-                        label: Text(const {'accepted': 'تأیید', 'edited': 'ویرایش', 'rejected': 'رد'}[st]!),
-                        selected: it['status'] == st,
-                        onSelected: (_) => setState(() => it['status'] = st),
-                      ),
+                      padding: const EdgeInsetsDirectional.only(end: 6),
+                      child: ChoiceChip(label: Text(context.t(st)), selected: it['status'] == st, onSelected: (_) => setState(() => it['status'] = st)),
                     ),
                 ]),
               ]),
             ),
           ),
         const SizedBox(height: 12),
-        TextField(controller: summaryCtl, maxLines: 6, decoration: const InputDecoration(labelText: 'خلاصه نهایی درمانگر (فقط این متن به پرونده می‌رود)', border: OutlineInputBorder())),
+        TextField(controller: summaryCtl, maxLines: 6, decoration: InputDecoration(labelText: context.t('final_summary'), border: const OutlineInputBorder())),
         const SizedBox(height: 12),
         Row(children: [
-          OutlinedButton(onPressed: () => _submit(false), child: const Text('ذخیره نسخه')),
+          OutlinedButton(onPressed: () => _submit(false), child: Text(context.t('save_version'))),
           const SizedBox(width: 8),
-          FilledButton(onPressed: () => _submit(true), child: const Text('نهایی کردن گزارش')),
+          FilledButton(onPressed: () => _submit(true), child: Text(context.t('finalize'))),
         ]),
       ]),
     );

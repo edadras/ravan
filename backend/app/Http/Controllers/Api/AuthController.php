@@ -21,7 +21,7 @@ class AuthController extends Controller
             'email' => ['required', 'email', 'unique:users,email'],
             'phone' => ['nullable', 'string', 'max:32', 'unique:users,phone'],
             'password' => ['required', 'string', 'min:10'],
-            'locale' => ['nullable', 'in:fa,en'],
+            'locale' => ['nullable', 'in:fa,en,tr'],
         ]);
         $user = User::create($data + ['role' => Role::Patient->value]);
         PatientProfile::create(['user_id' => $user->id, 'preferred_language' => $data['locale'] ?? 'fa']);

@@ -11,9 +11,9 @@ class BehaviorEvent extends Model
 {
     protected $fillable = [
         'uuid', 'therapy_session_id', 'patient_id', 'signal_id', 'group', 'tier', 't_start_ms', 't_end_ms',
-        'observation_en', 'observation_fa', 'baseline_value', 'observed_value', 'delta', 'delta_ratio', 'z_score', 'unit',
-        'confidence', 'quality', 'context', 'possible_contexts', 'clinical_rationale_en', 'clinical_rationale_fa',
-        'clinical_note_en', 'clinical_note_fa', 'member_event_uuids', 'transcript_segment_id', 'clinician_status',
+        'observation_en', 'observation_fa', 'observation_tr', 'baseline_value', 'observed_value', 'delta', 'delta_ratio', 'z_score', 'unit',
+        'confidence', 'quality', 'context', 'possible_contexts', 'clinical_rationale_en', 'clinical_rationale_fa', 'clinical_rationale_tr',
+        'clinical_note_en', 'clinical_note_fa', 'clinical_note_tr', 'member_event_uuids', 'transcript_segment_id', 'clinician_status',
     ];
 
     protected $casts = [

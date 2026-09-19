@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 
 import '../../core/api_client.dart';
 import '../../core/auth_store.dart';
+import '../../core/l10n.dart';
 import '../../core/models.dart';
 
 class ClinicianDetailScreen extends StatefulWidget {
@@ -37,12 +38,12 @@ class _ClinicianDetailScreenState extends State<ClinicianDetailScreen> {
     final auth = AuthScope.of(context);
     if (!auth.isLoggedIn) { context.go('/login'); return; }
     try {
-      final appt = await auth.api.post('/appointments', {'clinician_profile_id': widget.id, 'starts_at': startsAt, 'mode': mode}) as Map<String, dynamic>;
+      await auth.api.post('/appointments', {'clinician_profile_id': widget.id, 'starts_at': startsAt, 'mode': mode});
       if (mounted) {
-        await showDialog(context: context, builder: (_) => AlertDialog(title: const Text('نوبت ثبت شد'), content: Text('زمان: ${DateFormat('yyyy/MM/dd HH:mm').format(DateTime.parse(startsAt).toLocal())}\nپس از تأیید درمانگر، از صفحه اصلی وارد جلسه شوید.'), actions: [FilledButton(onPressed: () => Navigator.pop(context), child: const Text('باشه'))]));
+        final time = DateFormat.yMd(context.lang).add_Hm().format(DateTime.parse(startsAt).toLocal());
+        await showDialog(context: context, builder: (_) => AlertDialog(title: Text(context.t('booked_title')), content: Text(context.t('booked_body', {'time': time})), actions: [FilledButton(onPressed: () => Navigator.pop(context), child: Text(context.t('ok')))]));
         if (mounted) context.go('/');
       }
-      debugPrint('appointment ${appt['uuid']}');
     } on ApiException catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
     }
@@ -52,25 +53,24 @@ class _ClinicianDetailScreenState extends State<ClinicianDetailScreen> {
   Widget build(BuildContext context) {
     if (c == null) return const Scaffold(body: Center(child: CircularProgressIndicator()));
     return Scaffold(
-      appBar: AppBar(title: Text(c!.name)),
+      appBar: AppBar(title: Text(c!.name), actions: const [LanguageSwitcher()]),
       body: ListView(padding: const EdgeInsets.all(16), children: [
         Text(c!.title ?? '', style: const TextStyle(fontSize: 16, color: Colors.black54)),
         const SizedBox(height: 8),
-        Text(c!.bio ?? ''),
+        Text(context.pick(c!.bio)),
         const SizedBox(height: 8),
-        Wrap(spacing: 6, children: [for (final s in c!.specialties) Chip(label: Text(s))]),
+        Wrap(spacing: 6, children: [for (final s in c!.specialties) Chip(label: Text(context.pick(s)))]),
         const Divider(height: 32),
-        const Text('نوع جلسه', style: TextStyle(fontWeight: FontWeight.w700)),
+        Text(context.t('session_type'), style: const TextStyle(fontWeight: FontWeight.w700)),
         Wrap(spacing: 8, children: [
-          for (final m in c!.modes)
-            ChoiceChip(label: Text({'text': 'متنی', 'audio': 'صوتی', 'video': 'تصویری'}[m]!), selected: mode == m, onSelected: (_) => setState(() => mode = m)),
+          for (final m in c!.modes) ChoiceChip(label: Text(context.t('mode_$m')), selected: mode == m, onSelected: (_) => setState(() => mode = m)),
         ]),
         const SizedBox(height: 16),
-        const Text('زمان‌های آزاد (۱۴ روز آینده)', style: TextStyle(fontWeight: FontWeight.w700)),
-        if (slots.isEmpty) const Padding(padding: EdgeInsets.all(12), child: Text('زمان آزادی یافت نشد.')),
+        Text(context.t('free_slots'), style: const TextStyle(fontWeight: FontWeight.w700)),
+        if (slots.isEmpty) Padding(padding: const EdgeInsets.all(12), child: Text(context.t('no_slots'))),
         Wrap(spacing: 8, runSpacing: 8, children: [
           for (final s in slots.take(60))
-            OutlinedButton(onPressed: () => _book(s['starts_at'] as String), child: Text(DateFormat('EEE d MMM HH:mm', 'fa').format(DateTime.parse(s['starts_at'] as String).toLocal()))),
+            OutlinedButton(onPressed: () => _book(s['starts_at'] as String), child: Text(DateFormat.MMMEd(context.lang).add_Hm().format(DateTime.parse(s['starts_at'] as String).toLocal()))),
         ]),
       ]),
     );

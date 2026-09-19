@@ -10,6 +10,7 @@ from .schemas import BehaviorEvent, SessionReport, TranscriptSegment
 DISCLAIMER = {
     "en": "This report lists observable changes relative to the patient's own baseline in this session. It contains no diagnosis, no emotion classification and no risk score. Every item requires clinician review (Accept / Edit / Reject) before it becomes part of any record.",
     "fa": "این گزارش تغییرات قابل مشاهده نسبت به خط پایه خود بیمار در همین جلسه را فهرست می‌کند. هیچ تشخیص، طبقه‌بندی هیجان یا امتیاز خطری ندارد. هر مورد پیش از ورود به پرونده باید توسط درمانگر بازبینی شود (تأیید / ویرایش / رد).",
+    "tr": "Bu rapor, hastanın bu seanstaki kendi taban çizgisine göre gözlemlenebilir değişimleri listeler. Tanı, duygu sınıflandırması veya risk puanı içermez. Her madde kayda girmeden önce klinisyen tarafından incelenmelidir (Onayla / Düzenle / Reddet).",
 }
 
 
@@ -59,10 +60,12 @@ def build_report(session_id: str, duration_ms: int, events: list[BehaviorEvent],
         "n_change_events": len(change_events),
         "n_clusters": len(clusters),
         "strongest": [{"t": _fmt_t(e.t_start_ms), "observation_en": e.observation["en"], "observation_fa": e.observation["fa"],
+                       "observation_tr": e.observation.get("tr", e.observation["en"]),
                        "observed": e.observed_value, "baseline": e.baseline_value,
                        "quality": {k: v for k, v in e.quality.items() if isinstance(v, (int, float))},
                        "contexts_en": ", ".join(c["en"] for c in e.possible_contexts[:4]),
-                       "contexts_fa": "، ".join(c["fa"] for c in e.possible_contexts[:4])} for e in strongest],
+                       "contexts_fa": "، ".join(c["fa"] for c in e.possible_contexts[:4]),
+                       "contexts_tr": ", ".join(c.get("tr", c["en"]) for c in e.possible_contexts[:4])} for e in strongest],
         "safety": [{"t": _fmt_t(e.t_start_ms), "text": e.context.get("transcript_text", "")} for e in safety],
     }
     provider = get_provider()

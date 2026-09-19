@@ -28,6 +28,15 @@ class ConsentTextSeeder extends Seeder
             ['type' => 'transcription', 'locale' => 'en', 'title' => 'Transcription of the conversation',
                 'body' => 'With your agreement the conversation is transcribed and kept for you and your clinician to refer back to. It is deleted according to the retention policy.',
                 'bullet_points' => ['Visible to you and your clinician', 'Deleted per retention policy']],
+            ['type' => 'video_call', 'locale' => 'tr', 'title' => 'Görüntülü görüşme için kamera ve mikrofon izni',
+                'body' => 'Görüntünüz ve sesiniz bu seansta yalnızca klinisyeninize iletilir. Ham görüntü ve ses kaydedilmez. Kamerayı istediğiniz an kapatabilirsiniz.',
+                'bullet_points' => ['Yalnızca klinisyeninize canlı iletim', 'Ham görüntü/ses kaydı yok', 'İstediğiniz an kapatılabilir']],
+            ['type' => 'behavior_analysis', 'locale' => 'tr', 'title' => 'Seans sırasında beden ve sesin otomatik analizi için izin',
+                'body' => 'Onaylarsanız, cihazınızdaki yazılım yalnızca betimleyici sayılar (örneğin baş yönü, duruş, konuşma hızı) çıkarır ve platforma gönderir. Hiçbir ham görüntü veya ses gönderilmez ya da saklanmaz. Bu sayılar yalnızca bu seanstaki kendi davranışınızla karşılaştırılır ve yalnızca klinisyeninize gözlem olarak gösterilir, asla tanı olarak değil. Görüşmeyi bitirmeden istediğiniz an duraklatabilirsiniz; onayı geri çekmeniz bu seansın türetilmiş verilerini siler.',
+                'bullet_points' => ['Yalnızca sayılar, asla görüntü', 'Yalnızca bu seansta kendinizle karşılaştırma', 'Yalnızca klinisyene, tanı değil gözlem', 'Görüşmeyi bitirmeden istediğiniz an duraklatma', 'Onayı geri çekince türetilmiş veriler silinir']],
+            ['type' => 'transcription', 'locale' => 'tr', 'title' => 'Görüşmenin yazıya dökülmesi',
+                'body' => 'Onayınızla görüşme yazıya dökülür ve siz ve klinisyeninizin geri dönüp bakabilmesi için saklanır. Saklama politikasına göre silinir.',
+                'bullet_points' => ['Siz ve klinisyeniniz görebilir', 'Saklama politikasına göre silinir']],
         ];
         foreach ($texts as $t) {
             ConsentVersion::updateOrCreate(

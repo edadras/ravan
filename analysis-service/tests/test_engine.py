@@ -77,7 +77,9 @@ def test_sustained_head_turn_fires_once_per_cooldown():
     ev = next(e for e in an.events if e.signal_id == "head_turn_away_sustained")
     assert ev.diagnostic_claim is None
     assert any(p["key"] == "other_person" for p in ev.possible_contexts)
-    assert ev.observation["fa"]
+    assert ev.observation["fa"] and ev.observation["tr"] and ev.observation["en"]
+    assert all(p["tr"] for p in ev.possible_contexts)
+    assert ev.clinical_note["tr"]
 
 
 def test_posture_change_rate_and_cluster_around_question():
@@ -133,6 +135,22 @@ def test_safety_phrase_flag_comes_only_from_transcript():
     assert flags[0].z_score is None  # no score, just the words
     cf = analyze("I feel fine today", "en")
     assert cf.safety_hits == []
+    tr = an.ingest_transcript(TranscriptSegment(t_start_ms=4000, t_end_ms=6000, speaker="patient", text="Artık yaşamak istemiyorum", language="tr"))
+    assert [e for e in tr if e.tier == "safety"]
+    assert analyze("Bugün İyiyim, hiçbir şey yok", "tr").safety_hits == []
+    assert analyze("Hiç", "tr", is_answer_to_open_question=True).minimal_response
+
+
+def test_turkish_report_draft_and_disclaimer():
+    an = make_analyzer(language="tr")
+    feed_baseline(an, seconds=70)
+    for i in range(60):
+        an.ingest(FeatureFrame(t_ms=71_000 + i * 200, source="face", features={"head_yaw": 40.0}, quality=QUALITY))
+    rep = an.finish("tr")
+    assert "Klinik bir değerlendirme değildir" in rep.ai_draft_summary["text"]
+    assert rep.disclaimer["tr"]
+    clean, removed = guard("Hasta açıkça depresif görünüyor.")
+    assert removed
 
 
 def test_response_latency_change_from_transcript():

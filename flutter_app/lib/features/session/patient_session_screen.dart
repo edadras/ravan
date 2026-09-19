@@ -6,6 +6,7 @@ import 'package:web/web.dart' as web;
 
 import '../../core/api_client.dart';
 import '../../core/auth_store.dart';
+import '../../core/l10n.dart';
 import 'analysis_bridge.dart';
 import 'consent_dialog.dart';
 import 'webrtc_service.dart';
@@ -28,7 +29,7 @@ class _PatientSessionScreenState extends State<PatientSessionScreen> {
   Map<String, dynamic>? joinInfo;
   bool analysisOn = false;
   bool cameraOn = true;
-  String status = 'در حال اتصال…';
+  String statusKey = 'connecting';
   final chat = <Map<String, dynamic>>[];
   final chatCtl = TextEditingController();
   lk.Room? room;
@@ -44,7 +45,7 @@ class _PatientSessionScreenState extends State<PatientSessionScreen> {
     session = await api.get('/sessions/${widget.uuid}') as Map<String, dynamic>;
     final consented = (session!['consents'] as List).where((c) => c['withdrawn_at'] == null).map((c) => c['type']).toSet();
     if (session!['mode'] != 'text' && !consented.contains('video_call')) {
-      final texts = (await api.get('/consents/texts', query: {'locale': 'fa'}) as List).cast<Map<String, dynamic>>();
+      final texts = (await api.get('/consents/texts', query: {'locale': context.lang}) as List).cast<Map<String, dynamic>>();
       final granted = await ConsentDialog.show(context, texts);
       if (granted != null && granted.isNotEmpty) {
         await api.post('/sessions/${widget.uuid}/consents', {'types': granted.toList()});
@@ -56,7 +57,7 @@ class _PatientSessionScreenState extends State<PatientSessionScreen> {
       room!.addListener(() => setState(() {}));
       room!.createListener().on<lk.ActiveSpeakersChangedEvent>((e) => bridge.setRemoteSpeaking(e.speakers.any((p) => p is lk.RemoteParticipant)));
     }
-    setState(() => status = 'در جلسه');
+    setState(() => statusKey = 'in_session');
     if (joinInfo!['analysis_allowed'] == true) await _toggleAnalysis(true);
   }
 
@@ -87,9 +88,9 @@ class _PatientSessionScreenState extends State<PatientSessionScreen> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('پس گرفتن رضایت تحلیل'),
-        content: const Text('تحلیل بلافاصله متوقف می‌شود، جلسه ادامه می‌یابد و داده‌های مشتق‌شده این جلسه حذف خواهند شد.'),
-        actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('انصراف')), FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('پس می‌گیرم'))],
+        title: Text(context.t('withdraw_title')),
+        content: Text(context.t('withdraw_body')),
+        actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: Text(context.t('cancel'))), FilledButton(onPressed: () => Navigator.pop(context, true), child: Text(context.t('withdraw_confirm')))],
       ),
     );
     if (ok == true) {
@@ -117,8 +118,9 @@ class _PatientSessionScreenState extends State<PatientSessionScreen> {
   Widget build(BuildContext context) {
     final remote = room?.remoteParticipants.values.expand((p) => p.videoTrackPublications).map((p) => p.track).whereType<lk.VideoTrack>().firstOrNull;
     return Scaffold(
-      appBar: AppBar(title: Text('جلسه — $status'), actions: [
-        TextButton.icon(onPressed: _end, icon: const Icon(Icons.call_end, color: Colors.red), label: const Text('پایان جلسه')),
+      appBar: AppBar(title: Text(context.t('session_title', {'status': context.t(statusKey)})), actions: [
+        const LanguageSwitcher(),
+        TextButton.icon(onPressed: _end, icon: const Icon(Icons.call_end, color: Colors.red), label: Text(context.t('end_session'))),
       ]),
       body: Row(children: [
         Expanded(
@@ -128,7 +130,7 @@ class _PatientSessionScreenState extends State<PatientSessionScreen> {
               child: Container(
                 color: Colors.black,
                 child: Stack(children: [
-                  if (remote != null) lk.VideoTrackRenderer(remote) else const Center(child: Text('در انتظار درمانگر…', style: TextStyle(color: Colors.white70))),
+                  if (remote != null) lk.VideoTrackRenderer(remote) else Center(child: Text(context.t('waiting_clinician'), style: const TextStyle(color: Colors.white70))),
                   if (rtc.localVideo != null && cameraOn)
                     Positioned(bottom: 12, left: 12, width: 200, height: 150, child: lk.VideoTrackRenderer(rtc.localVideo!)),
                 ]),
@@ -139,18 +141,18 @@ class _PatientSessionScreenState extends State<PatientSessionScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Row(children: [
                 IconButton(
-                  tooltip: cameraOn ? 'خاموش کردن دوربین' : 'روشن کردن دوربین',
+                  tooltip: context.t(cameraOn ? 'camera_off' : 'camera_on'),
                   onPressed: () async { await rtc.setCameraEnabled(!cameraOn); setState(() => cameraOn = !cameraOn); },
                   icon: Icon(cameraOn ? Icons.videocam : Icons.videocam_off),
                 ),
                 const SizedBox(width: 16),
                 if (joinInfo?['analysis_allowed'] == true) ...[
                   Switch(value: analysisOn, onChanged: _toggleAnalysis),
-                  Text(analysisOn ? 'تحلیل رفتاری فعال است (فقط اعداد، بدون ذخیره تصویر)' : 'تحلیل رفتاری متوقف است'),
+                  Text(context.t(analysisOn ? 'analysis_on_label' : 'analysis_paused_label')),
                   const SizedBox(width: 12),
-                  TextButton(onPressed: _withdraw, child: const Text('پس گرفتن رضایت')),
+                  TextButton(onPressed: _withdraw, child: Text(context.t('withdraw_consent'))),
                 ] else
-                  const Text('تحلیل رفتاری غیرفعال است'),
+                  Text(context.t('analysis_disabled_label')),
               ]),
             ),
           ]),
@@ -163,7 +165,7 @@ class _PatientSessionScreenState extends State<PatientSessionScreen> {
                 padding: const EdgeInsets.all(12),
                 itemCount: chat.length,
                 itemBuilder: (_, i) => Align(
-                  alignment: chat[i]['mine'] == true ? Alignment.centerRight : Alignment.centerLeft,
+                  alignment: chat[i]['mine'] == true ? AlignmentDirectional.centerEnd : AlignmentDirectional.centerStart,
                   child: Card(child: Padding(padding: const EdgeInsets.all(8), child: Text(chat[i]['body'] as String))),
                 ),
               ),
@@ -172,7 +174,7 @@ class _PatientSessionScreenState extends State<PatientSessionScreen> {
               padding: const EdgeInsets.all(8),
               child: TextField(
                 controller: chatCtl,
-                decoration: const InputDecoration(hintText: 'پیام…', border: OutlineInputBorder()),
+                decoration: InputDecoration(hintText: context.t('message_hint'), border: const OutlineInputBorder()),
                 onSubmitted: (v) async {
                   if (v.trim().isEmpty) return;
                   await api.post('/sessions/${widget.uuid}/messages', {'body': v});

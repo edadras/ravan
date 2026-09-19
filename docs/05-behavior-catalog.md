@@ -2,15 +2,18 @@
 
 منبع حقیقت: `catalog/signals_*.py` → `python3 catalog/build_catalog.py` → `signal_catalog.json`, `feature_dictionary.json`, `parameter_space.json`, `catalog_summary.md`. بک‌اند با `php artisan db:seed --class=SignalCatalogSeeder` آن را وارد می‌کند و سرویس تحلیل مستقیماً می‌خواند.
 
+## زبان‌ها
+هر متن (مشاهده، توضیح، دلیل بالینی، برچسب سطح، زمینه‌ها، گروه‌ها) با سه کلید `fa`, `en`, `tr` ذخیره می‌شود. ترجمه‌های ترکی در `translations_tr.py` هستند و builder بدون آن‌ها متوقف می‌شود.
+
 ## ساختار هر سیگنال
 ```json
 {
   "id": "hand_to_face_rate_change", "group": "hands_arms", "tier": "change",
-  "observation": {"en": "Frequency of hand-to-face contact changed from baseline", "fa": "تعداد تماس دست با صورت نسبت به خط پایه تغییر کرده است"},
+  "observation": {"en": "Frequency of hand-to-face contact changed from baseline", "fa": "تعداد تماس دست با صورت نسبت به خط پایه تغییر کرده است", "tr": "El-yüz teması sıklığı taban çizgisine göre değişti"},
   "features": ["hand_contact_event", "hand_region_contact"],
   "detector": {"type": "rate_change", "window_s": 60, "comparison": "ratio_vs_session_baseline", "threshold": 1.8, "cooldown_s": 120, "speaker_state": "any"},
   "quality_gates": {"face_quality": 0.7, "face_in_frame_ratio": 0.9, "illumination": 0.3, "hand_quality": 0.6, "hands_visible": true},
-  "possible_contexts": [{"key":"itching","fa":"خارش یا تحریک پوست"}, {"key":"thinking","fa":"فکر کردن یا تأمل"}, …],
+  "possible_contexts": [{"key":"itching","en":"itching or skin irritation","fa":"خارش یا تحریک پوست","tr":"kaşıntı veya cilt tahrişi"}, …],
   "clinical_rationale": {"fa": "رفتارهای خودلمسی در گفت‌وگوی روزمره رایج‌اند و با خارش، بار شناختی، خستگی و خودتنظیمی به یک اندازه افزایش می‌یابند…"},
   "clinical_note": {"fa": "صرفاً مشاهده است…"},
   "forbidden_labels": ["deception", "diagnosis", "anxiety_disorder", …],

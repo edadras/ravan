@@ -6,6 +6,7 @@ use App\Events\BehaviorEventCreated;
 use App\Models\ClinicianProfile;
 use App\Models\TherapySession;
 use App\Models\User;
+use Database\Seeders\ConsentTextSeeder;
 use Database\Seeders\DemoSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
@@ -26,7 +27,7 @@ class SessionConsentAndEventsTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->seed(DemoSeeder::class);
+        $this->seed([DemoSeeder::class, ConsentTextSeeder::class]);
         config(['ravan.analysis.webhook_secret' => 'test-secret', 'ravan.analysis.base_url' => 'http://analysis.test']);
         $this->patient = User::where('email', 'patient@ravan.local')->first();
         $this->clinician = User::where('email', 'dr.sara@ravan.local')->first();
@@ -54,12 +55,27 @@ class SessionConsentAndEventsTest extends TestCase
         return array_merge([
             'id' => (string) Str::uuid(), 'session_id' => $this->session->uuid, 'signal_id' => 'response_latency_increase',
             'group' => 'speech_prosody', 'tier' => 'change', 't_start_ms' => 754210, 't_end_ms' => 758900,
-            'observation' => ['en' => 'Time from question end to answer start longer than baseline', 'fa' => 'تأخیر پاسخ طولانی‌تر از خط پایه'],
+            'observation' => ['en' => 'Time from question end to answer start longer than baseline', 'fa' => 'تأخیر پاسخ طولانی‌تر از خط پایه', 'tr' => 'Yanıt gecikmesi taban çizgisinden uzun'],
             'baseline_value' => 1.4, 'observed_value' => 4.7, 'delta' => 3.3, 'z_score' => 2.9, 'unit' => 's', 'confidence' => 0.86,
             'quality' => ['audio_quality' => 0.95], 'context' => ['speaker' => 'patient_speaking'],
-            'possible_contexts' => [['key' => 'thinking', 'en' => 'thinking', 'fa' => 'فکر کردن']],
-            'clinical_note' => ['en' => 'Observation only.', 'fa' => 'فقط مشاهده.'], 'member_events' => [], 'diagnostic_claim' => null,
+            'possible_contexts' => [['key' => 'thinking', 'en' => 'thinking', 'fa' => 'فکر کردن', 'tr' => 'düşünme']],
+            'clinical_note' => ['en' => 'Observation only.', 'fa' => 'فقط مشاهده.', 'tr' => 'Yalnızca gözlem.'], 'member_events' => [], 'diagnostic_claim' => null,
         ], $over);
+    }
+
+    public function test_error_messages_follow_accept_language(): void
+    {
+        $this->goLive();
+        $url = "/api/sessions/{$this->session->uuid}/analysis/start";
+        $this->actingAs($this->patient)->postJson($url, [], ['Accept-Language' => 'tr'])->assertForbidden()
+            ->assertHeader('Content-Language', 'tr')->assertJsonPath('message', 'Davranış analizi, hastanın görüşme ve analiz onaylarını gerektirir.');
+        $this->actingAs($this->patient)->postJson($url, [], ['Accept-Language' => 'en-US,en;q=0.9'])->assertForbidden()
+            ->assertJsonPath('message', 'Behavioural analysis requires the patient\'s call and analysis consents.');
+        $this->actingAs($this->patient)->postJson($url, [], ['Accept-Language' => 'fa'])->assertForbidden()
+            ->assertJsonPath('message', 'تحلیل رفتاری نیازمند رضایت تماس و رضایت تحلیل از سوی مراجع است.');
+        $texts = $this->getJson('/api/consents/texts?locale=tr')->assertOk()->json();
+        $this->assertSame('Görüntülü görüşme için kamera ve mikrofon izni', collect($texts)->firstWhere('type', 'video_call')['title']);
+        $this->getJson('/api/clinicians/specialties', ['Accept-Language' => 'tr'])->assertOk()->assertJsonPath('0.name_tr', 'Bağımlılık');
     }
 
     public function test_analysis_cannot_start_without_both_consents(): void
@@ -104,6 +120,7 @@ class SessionConsentAndEventsTest extends TestCase
         $list = $this->actingAs($this->clinician)->getJson("/api/sessions/{$this->session->uuid}/events")->assertOk()->json();
         $this->assertCount(1, $list['data']);
         $this->assertNull($list['data'][0]['diagnostic_claim']);
+        $this->assertSame('Yanıt gecikmesi taban çizgisinden uzun', $list['data'][0]['observation_tr']);
         $this->assertSame('هیچی', $list['data'][0]['transcript_segment']['text']);
         $this->actingAs($this->patient)->getJson("/api/sessions/{$this->session->uuid}/events")->assertForbidden();
 

@@ -18,6 +18,8 @@ class CatalogSeederTest extends TestCase
         $this->assertGreaterThan(250, BehaviorSignal::count());
         $s = BehaviorSignal::where('signal_id', 'arms_crossed_sustained')->firstOrFail();
         $this->assertNotEmpty($s->observation_fa);
+        $this->assertNotEmpty($s->observation_tr);
+        $this->assertNotEmpty($s->clinical_note_tr);
         $this->assertContains('deception', $s->forbidden_labels);
         $this->assertSame('sustained', $s->detector['type']);
         $user = User::factory()->create();

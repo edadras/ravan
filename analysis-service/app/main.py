@@ -11,6 +11,9 @@ POST /sessions/{id}/control         pause / resume / consent / camera_moved / cl
 GET  /sessions/{id}/events          events so far
 GET  /sessions/{id}/baseline        baseline status
 POST /sessions/{id}/finish          build the end-of-session report and dispose the analyser
+POST /assist/formulation            formulation draft + differential hypotheses (clinician decision support)
+POST /assist/qa                     per question–answer response analysis
+POST /assist/chat                   clinician questions about a session
 GET  /catalog                       the signal catalog (for UI rendering)
 GET  /healthz
 """
@@ -24,6 +27,7 @@ from typing import Any
 from fastapi import FastAPI, Header, HTTPException, WebSocket, WebSocketDisconnect
 
 from . import __version__
+from . import assist
 from .catalog import load_catalog
 from .engine import SessionAnalyzer, WebhookSink
 from .schemas import ControlMessage, FrameBatch, QuestionEvent, StartSession, TranscriptSegment
@@ -122,6 +126,25 @@ def finish(session_id: str, language: str | None = None, authorization: str | No
     if an is None:
         raise HTTPException(404, "unknown session")
     return an.finish(language).model_dump()
+
+
+# ---------------------------------------------------------------- clinical assistant (decision support)
+@app.post("/assist/formulation")
+def assist_formulation(payload: dict, authorization: str | None = Header(default=None)) -> dict:
+    _auth(authorization)
+    return assist.formulation(payload)
+
+
+@app.post("/assist/qa")
+def assist_qa(payload: dict, authorization: str | None = Header(default=None)) -> dict:
+    _auth(authorization)
+    return assist.qa_analysis(payload.get("transcript", []), payload.get("events", []), payload.get("language", "en"))
+
+
+@app.post("/assist/chat")
+def assist_chat(payload: dict, authorization: str | None = Header(default=None)) -> dict:
+    _auth(authorization)
+    return assist.chat(payload)
 
 
 @app.websocket("/ws/sessions/{session_id}")

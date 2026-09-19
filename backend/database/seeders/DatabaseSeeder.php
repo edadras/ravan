@@ -8,7 +8,7 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        $this->call([SignalCatalogSeeder::class, ConsentTextSeeder::class]);
+        $this->call([SignalCatalogSeeder::class, ConsentTextSeeder::class, DiagnosisCodeSeeder::class]);
         if (app()->environment(['local', 'testing'])) {
             $this->call(DemoSeeder::class);
         }

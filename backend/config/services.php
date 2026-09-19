@@ -2,6 +2,11 @@
 
 return [
 
+    'zarinpal' => [
+        'merchant_id' => env('ZARINPAL_MERCHANT_ID'),
+        'sandbox' => (bool) env('ZARINPAL_SANDBOX', true),
+    ],
+
     /*
     |--------------------------------------------------------------------------
     | Third Party Services

@@ -11,4 +11,6 @@ return [
     'forbidden_role' => 'Rolünüz bu işlemi yapmaya yetkili değil.',
     'invalid_signature' => 'Geçersiz webhook imzası.',
     'diagnostic_claim_rejected' => 'Tanısal iddialar kabul edilmez.',
+    'no_relationship' => 'Mesajlaşma yalnızca randevusu olan danışan ve klinisyen arasında mümkündür.',
+    'already_paid' => 'Bu randevu zaten ödendi.',
 ];

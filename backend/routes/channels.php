@@ -16,3 +16,6 @@ Broadcast::channel('session.{uuid}.patient', function ($user, string $uuid) {
 
     return $session && $user->id === $session->patient_id;
 });
+
+// Per-user channel: direct messages, appointment and screening notifications.
+Broadcast::channel('user.{id}', fn ($user, int $id) => $user->id === $id);

@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Appointment;
 use App\Models\ClinicianProfile;
 use App\Models\TherapySession;
+use App\Notifications\AppointmentNotification;
 use App\Services\AuditLogger;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -60,6 +61,7 @@ class AppointmentController extends Controller
             'language' => $request->user()->locale ?? 'fa',
         ]);
         $this->audit->log($request->user(), 'appointment.created', $appointment);
+        $appointment->clinician->notify(new AppointmentNotification($appointment, 'created'));
 
         return response()->json($appointment->load('session:id,uuid,appointment_id,status'), 201);
     }
@@ -69,6 +71,7 @@ class AppointmentController extends Controller
         abort_unless($request->user()->id === $appointment->clinician_id, 403);
         $appointment->update(['status' => AppointmentStatus::Confirmed]);
         $this->audit->log($request->user(), 'appointment.confirmed', $appointment);
+        $appointment->patient->notify(new AppointmentNotification($appointment, 'confirmed'));
 
         return response()->json($appointment);
     }
@@ -84,6 +87,7 @@ class AppointmentController extends Controller
         ]);
         $appointment->session?->update(['status' => 'cancelled']);
         $this->audit->log($user, 'appointment.cancelled', $appointment);
+        ($user->id === $appointment->patient_id ? $appointment->clinician : $appointment->patient)->notify(new AppointmentNotification($appointment, 'cancelled'));
 
         return response()->json($appointment);
     }

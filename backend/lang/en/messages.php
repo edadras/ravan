@@ -11,4 +11,6 @@ return [
     'forbidden_role' => 'Your role is not allowed to perform this action.',
     'invalid_signature' => 'Invalid webhook signature.',
     'diagnostic_claim_rejected' => 'Diagnostic claims are not accepted.',
+    'no_relationship' => 'Messaging is available only between a patient and a clinician with an appointment.',
+    'already_paid' => 'This appointment is already paid.',
 ];

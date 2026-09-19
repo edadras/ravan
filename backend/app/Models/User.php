@@ -15,7 +15,7 @@ class User extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable, SoftDeletes;
 
-    protected $fillable = ['name', 'email', 'phone', 'password', 'role', 'locale'];
+    protected $fillable = ['name', 'email', 'phone', 'password', 'role', 'locale', 'terms_accepted_at', 'terms_version', 'email_verified_at', 'phone_verified_at'];
 
     protected $hidden = ['password', 'remember_token'];
 
@@ -23,6 +23,8 @@ class User extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
+            'phone_verified_at' => 'datetime',
+            'terms_accepted_at' => 'datetime',
             'last_login_at' => 'datetime',
             'password' => 'hashed',
             'role' => Role::class,
@@ -63,5 +65,10 @@ class User extends Authenticatable
     public function sessionsAsClinician(): HasMany
     {
         return $this->hasMany(TherapySession::class, 'clinician_id');
+    }
+
+    public function record(): HasOne
+    {
+        return $this->hasOne(PatientRecord::class, 'patient_id');
     }
 }

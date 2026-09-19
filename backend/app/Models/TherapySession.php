@@ -99,6 +99,11 @@ class TherapySession extends Model
         return $this->hasOne(SessionReport::class);
     }
 
+    public function aiSuggestions(): HasMany
+    {
+        return $this->hasMany(AiSuggestion::class);
+    }
+
     public function hasActiveConsent(ConsentType $type): bool
     {
         $version = config('ravan.consent.current_versions')[$type->value] ?? null;

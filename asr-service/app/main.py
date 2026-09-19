@@ -9,48 +9,30 @@ Backends (RAVAN_ASR_BACKEND):
   fake          – deterministic output for tests and demos
 
 Audio is processed in memory and discarded. The speaker is known from which participant's
-microphone produced the chunk, so no diarization model is needed. Question detection is a
-per-language heuristic (punctuation + interrogatives + rising-intonation flag from the client).
+microphone produced the chunk, so no diarization model is needed.
+
+Question detection combines a per-language structural heuristic (questions.py) with a pitch
+measurement taken from the audio itself (prosody.py), so a declarative question — one with no
+interrogative word, marked only by a rising tail — is still recognised. Each segment reports
+`rising_intonation` and the measured `f0_slope_semitones_per_s` alongside `is_question`.
 """
 
 from __future__ import annotations
 
 import logging
 import os
-import re
 import tempfile
 from typing import Any
 
 import httpx
 from fastapi import FastAPI, File, Form, Header, HTTPException, UploadFile
 
+from . import prosody
+from .questions import is_question
+
 log = logging.getLogger("ravan.asr")
 app = FastAPI(title="Ravan ASR service", version="0.1.0")
 API_TOKEN = os.environ.get("RAVAN_ASR_TOKEN", "")
-
-INTERROGATIVES = {
-    "fa": ["چطور", "چطوره", "چگونه", "چرا", "چی", "چه", "کی", "کجا", "آیا", "چند", "کدام", "کدوم", "می‌تونی", "میتونی", "می‌شه", "میشه", "داری", "دارید", "هست", "بود"],
-    "en": ["how", "why", "what", "when", "where", "who", "which", "do you", "did you", "are you", "have you", "can you", "could you", "would you", "is it", "was it"],
-    "tr": ["nasıl", "neden", "niçin", "ne", "ne zaman", "nerede", "kim", "hangi", "mi", "mı", "mu", "mü", "misin", "mısın", "musun", "müsün"],
-}
-
-
-def is_question(text: str, lang: str, rising: bool = False) -> bool:
-    t = text.strip()
-    if not t:
-        return False
-    if re.search(r"[?؟]\s*$", t):
-        return True
-    low = t.lower()
-    words = INTERROGATIVES.get(lang, INTERROGATIVES["en"])
-    if lang == "tr":
-        if re.search(r"\b(mi|mı|mu|mü|misin|mısın|musun|müsün|miydi|mıydı)\b\s*[.!]?\s*$", low):
-            return True
-    first = " ".join(low.split()[:3])
-    if any(first.startswith(w) or f" {w} " in f" {low} " for w in words) and (rising or len(low.split()) <= 12):
-        return True
-    return rising and len(low.split()) <= 8
-
 
 class FakeBackend:
     name = "fake"
@@ -123,7 +105,7 @@ def healthz() -> dict:
 
 @app.post("/transcribe")
 async def transcribe(audio: UploadFile = File(...), language: str = Form("fa"), speaker: str = Form("patient"), t_offset_ms: int = Form(0),
-                     rising_intonation: bool = Form(False), authorization: str | None = Header(default=None)) -> dict:
+                     authorization: str | None = Header(default=None)) -> dict:
     if API_TOKEN and authorization != f"Bearer {API_TOKEN}":
         raise HTTPException(401, "unauthorized")
     if language not in ("fa", "en", "tr"):
@@ -137,14 +119,20 @@ async def transcribe(audio: UploadFile = File(...), language: str = Form("fa"), 
         log.exception("transcription failed")
         raise HTTPException(502, f"asr backend failed: {exc}") from exc
     lang = res.get("language", language)
+    # Only the clinician's utterances anchor a response latency, so the pitch
+    # track is only worth computing for those.
+    pcm = prosody.decode_pcm(data) if speaker == "clinician" else None
     segments = []
     for s in res["segments"]:
         text = s["text"].strip()
         if not text:
             continue
+        rises, slope = prosody.rising(pcm, float(s["start"]), float(s["end"]))
         segments.append({
             "t_start_ms": int(t_offset_ms + s["start"] * 1000), "t_end_ms": int(t_offset_ms + s["end"] * 1000), "text": text,
             "confidence": float(s.get("confidence", 1.0)), "speaker": speaker,
-            "is_question": speaker == "clinician" and is_question(text, lang, rising_intonation),
+            "is_question": speaker == "clinician" and is_question(text, lang, rises),
+            "rising_intonation": rises,
+            "f0_slope_semitones_per_s": slope,
         })
     return {"backend": backend().name, "language": lang, "segments": segments}

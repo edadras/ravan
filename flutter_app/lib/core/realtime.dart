@@ -47,7 +47,9 @@ class RealtimeClient {
   }
 
   Future<void> _subscribe(String channel) async {
-    final auth = await api.post('/../broadcasting/auth', {'socket_id': _socketId, 'channel_name': channel}) as Map<String, dynamic>;
+    // /api/broadcasting/auth: the same stack and the same bearer token as
+    // every other call (see bootstrap/app.php).
+    final auth = await api.post('/broadcasting/auth', {'socket_id': _socketId, 'channel_name': channel}) as Map<String, dynamic>;
     _ch!.sink.add(jsonEncode({'event': 'pusher:subscribe', 'data': {'channel': channel, 'auth': auth['auth']}}));
   }
 

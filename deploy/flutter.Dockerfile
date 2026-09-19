@@ -11,7 +11,10 @@ FROM debian:bookworm-slim AS flutter
 ARG FLUTTER_VERSION=3.27.4
 ARG RAVAN_API_URL=/api
 ARG RAVAN_WS_URL=""
-ARG RAVAN_LIVEKIT_URL=""
+# Reverb's public app key. Not a secret: it identifies the app to the socket
+# server, and every channel is still authorised per user through
+# /api/broadcasting/auth. The app secret stays on the server.
+ARG RAVAN_WS_KEY=""
 
 ENV DEBIAN_FRONTEND=noninteractive \
     PATH="/opt/flutter/bin:/opt/flutter/bin/cache/dart-sdk/bin:${PATH}"
@@ -41,7 +44,7 @@ RUN chmod +x /usr/local/bin/fetch-vendor && fetch-vendor /src/web/vendor
 RUN flutter build web --release \
         --dart-define=RAVAN_API_URL="${RAVAN_API_URL}" \
         --dart-define=RAVAN_WS_URL="${RAVAN_WS_URL}" \
-        --dart-define=RAVAN_LIVEKIT_URL="${RAVAN_LIVEKIT_URL}"
+        --dart-define=RAVAN_WS_KEY="${RAVAN_WS_KEY}"
 
 # ---------------------------------------------------------------------------
 FROM alpine:3.20

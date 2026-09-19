@@ -27,5 +27,6 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
-  assets:
-    - assets/
+  # No bundled assets: the icons come from Material, and the MediaPipe runtime
+  # and models are served from web/vendor/ (deploy/fetch-vendor.sh) rather than
+  # going through the Flutter asset bundle.

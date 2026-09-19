@@ -105,6 +105,8 @@ DERIVED_FEATURES = {
     # head pose
     "head_yaw": ("deg", "Head rotation left/right", "چرخش سر چپ/راست", "face"),
     "head_pitch": ("deg", "Head rotation up/down", "چرخش سر بالا/پایین", "face"),
+    "head_oscillation_hz": ("Hz", "Dominant frequency of head nodding or rocking", "فرکانس غالب تکان یا نوسان سر", "face"),
+    "head_oscillation_prominence": ("norm", "Share of in-band power carried by the head oscillation peak", "سهم توان طیفی قلهٔ نوسان سر", "face"),
     "head_roll": ("deg", "Head lateral tilt", "کج شدن جانبی سر", "face"),
     "head_tx": ("norm", "Head horizontal position in frame", "موقعیت افقی سر در کادر", "face"),
     "head_ty": ("norm", "Head vertical position in frame", "موقعیت عمودی سر در کادر", "face"),
@@ -114,6 +116,12 @@ DERIVED_FEATURES = {
     # eyes / gaze
     "gaze_x": ("norm", "Horizontal gaze vector (iris relative to eye corners)", "بردار افقی نگاه", "face"),
     "gaze_y": ("norm", "Vertical gaze vector", "بردار عمودی نگاه", "face"),
+    # Gaze is reported twice: relative to the head, and combined with the head's
+    # own rotation. Keeping them apart lets a detector distinguish "looked away
+    # with the eyes" from "turned the whole head away", which are different
+    # observations with different benign explanations.
+    "gaze_in_head_x": ("norm", "Horizontal iris offset within the eye, independent of head rotation", "انحراف افقی عنبیه مستقل از چرخش سر", "face"),
+    "gaze_in_head_y": ("norm", "Vertical iris offset within the eye, independent of head rotation", "انحراف عمودی عنبیه مستقل از چرخش سر", "face"),
     "gaze_on_screen": ("bool", "Gaze estimated within screen region", "نگاه در محدوده صفحه", "face"),
     "gaze_on_camera": ("bool", "Gaze estimated toward camera", "نگاه به سمت دوربین", "face"),
     "gaze_shift_event": ("event", "Saccade-like gaze shift", "جابه‌جایی ناگهانی نگاه", "face"),
@@ -161,6 +169,7 @@ DERIVED_FEATURES = {
     "pose_delta": ("norm/s", "Frame-to-frame pose displacement", "جابه‌جایی وضعیت بین فریم‌ها", "pose"),
     "pose_change_event": ("event", "Meaningful posture change", "تغییر معنادار وضعیت", "pose"),
     "torso_oscillation_hz": ("Hz", "Dominant torso sway frequency", "فرکانس نوسان تنه", "pose"),
+    "torso_oscillation_prominence": ("norm", "Share of in-band power carried by the torso oscillation peak — how trustworthy the frequency is", "سهم توان طیفی قلهٔ نوسان تنه — اعتبار فرکانس گزارش‌شده", "pose"),
     "motion_energy_total": ("norm/s", "Whole-body motion energy", "انرژی حرکتی کل بدن", "pose"),
     "motion_symmetry": ("ratio", "Left/right limb motion ratio", "تقارن حرکت اندام‌ها", "pose"),
     "stillness_duration": ("s", "Time since last meaningful movement", "مدت سکون", "pose"),
@@ -176,6 +185,7 @@ DERIVED_FEATURES = {
     "hand_velocity_right": ("norm/s", "Right hand speed", "سرعت دست راست", "hands"),
     "hand_acceleration": ("norm/s2", "Hand acceleration magnitude", "شتاب دست", "hands"),
     "hand_oscillation_hz": ("Hz", "Dominant frequency of hand micro-motion", "فرکانس نوسان دست", "hands"),
+    "hand_oscillation_prominence": ("norm", "Share of in-band power carried by the hand oscillation peak — how trustworthy the frequency is", "سهم توان طیفی قلهٔ نوسان دست — اعتبار فرکانس گزارش‌شده", "hands"),
     "hand_oscillation_amplitude": ("norm", "Amplitude of hand micro-motion", "دامنه نوسان دست", "hands"),
     "finger_motion_energy": ("norm/s", "Finger landmark motion energy", "انرژی حرکتی انگشتان", "hands"),
     "finger_tap_event": ("event", "Finger tap-like event", "ضربه انگشت", "hands"),
@@ -193,6 +203,7 @@ DERIVED_FEATURES = {
     # lower body
     "lower_body_visible": ("bool", "Hips/knees/ankles in frame", "دیده شدن پایین‌تنه", "pose"),
     "knee_oscillation_hz": ("Hz", "Knee vertical oscillation frequency", "فرکانس نوسان زانو", "pose"),
+    "knee_oscillation_prominence": ("norm", "Share of in-band power carried by the knee oscillation peak — how trustworthy the frequency is", "سهم توان طیفی قلهٔ نوسان زانو — اعتبار فرکانس گزارش‌شده", "pose"),
     "ankle_oscillation_hz": ("Hz", "Ankle oscillation frequency", "فرکانس نوسان مچ پا", "pose"),
     "leg_cross_state": ("cat", "Leg crossing state", "وضعیت روی هم انداختن پا", "pose"),
     "hip_shift_event": ("event", "Whole-body seat shift", "جابه‌جایی روی صندلی", "pose"),

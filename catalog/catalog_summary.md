@@ -56,8 +56,8 @@ Languages: fa, en, tr (every observation, note, context, tier and group is valid
 
 ## Parameter space
 
-Per-frame primitive measurements: **118,985**  
+Per-frame primitive measurements: **118,992**  
 Windows × statistics × comparisons × speaker states: **3,780**  
-Addressable parameters: **449,763,300** (~449.8 million)
+Addressable parameters: **449,789,760** (~449.8 million)
 
 See `parameter_space.json` for the breakdown and `feature_dictionary.json` for the id grammar.

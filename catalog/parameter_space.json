@@ -16,11 +16,11 @@
     "hand_face_landmark_distances": 504,
     "blendshapes": 53,
     "action_units": 32,
-    "derived_features": 181,
+    "derived_features": 188,
     "audio_low_level_descriptors": 88,
     "mfcc_bands": 26
   },
-  "per_frame_total": 118985,
+  "per_frame_total": 118992,
   "axes": {
     "windows": 9,
     "statistics": 15,
@@ -28,7 +28,7 @@
     "speaker_states": 4,
     "combinations_per_primitive": 3780
   },
-  "addressable_parameters_total": 449763300,
+  "addressable_parameters_total": 449789760,
   "addressable_parameters_human": "449.8 million",
   "note": "Only parameters referenced by enabled signals are computed in real time; the rest are available for offline research with explicit consent."
 }

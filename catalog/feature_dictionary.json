@@ -2311,6 +2311,22 @@
       },
       "source": "face"
     },
+    "head_oscillation_hz": {
+      "unit": "Hz",
+      "description": {
+        "en": "Dominant frequency of head nodding or rocking",
+        "fa": "فرکانس غالب تکان یا نوسان سر"
+      },
+      "source": "face"
+    },
+    "head_oscillation_prominence": {
+      "unit": "norm",
+      "description": {
+        "en": "Share of in-band power carried by the head oscillation peak",
+        "fa": "سهم توان طیفی قلهٔ نوسان سر"
+      },
+      "source": "face"
+    },
     "head_roll": {
       "unit": "deg",
       "description": {
@@ -2372,6 +2388,22 @@
       "description": {
         "en": "Vertical gaze vector",
         "fa": "بردار عمودی نگاه"
+      },
+      "source": "face"
+    },
+    "gaze_in_head_x": {
+      "unit": "norm",
+      "description": {
+        "en": "Horizontal iris offset within the eye, independent of head rotation",
+        "fa": "انحراف افقی عنبیه مستقل از چرخش سر"
+      },
+      "source": "face"
+    },
+    "gaze_in_head_y": {
+      "unit": "norm",
+      "description": {
+        "en": "Vertical iris offset within the eye, independent of head rotation",
+        "fa": "انحراف عمودی عنبیه مستقل از چرخش سر"
       },
       "source": "face"
     },
@@ -2719,6 +2751,14 @@
       },
       "source": "pose"
     },
+    "torso_oscillation_prominence": {
+      "unit": "norm",
+      "description": {
+        "en": "Share of in-band power carried by the torso oscillation peak — how trustworthy the frequency is",
+        "fa": "سهم توان طیفی قلهٔ نوسان تنه — اعتبار فرکانس گزارش‌شده"
+      },
+      "source": "pose"
+    },
     "motion_energy_total": {
       "unit": "norm/s",
       "description": {
@@ -2828,6 +2868,14 @@
       "description": {
         "en": "Dominant frequency of hand micro-motion",
         "fa": "فرکانس نوسان دست"
+      },
+      "source": "hands"
+    },
+    "hand_oscillation_prominence": {
+      "unit": "norm",
+      "description": {
+        "en": "Share of in-band power carried by the hand oscillation peak — how trustworthy the frequency is",
+        "fa": "سهم توان طیفی قلهٔ نوسان دست — اعتبار فرکانس گزارش‌شده"
       },
       "source": "hands"
     },
@@ -2956,6 +3004,14 @@
       "description": {
         "en": "Knee vertical oscillation frequency",
         "fa": "فرکانس نوسان زانو"
+      },
+      "source": "pose"
+    },
+    "knee_oscillation_prominence": {
+      "unit": "norm",
+      "description": {
+        "en": "Share of in-band power carried by the knee oscillation peak — how trustworthy the frequency is",
+        "fa": "سهم توان طیفی قلهٔ نوسان زانو — اعتبار فرکانس گزارش‌شده"
       },
       "source": "pose"
     },

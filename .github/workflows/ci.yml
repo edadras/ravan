@@ -1,0 +1,68 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  catalog:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.11"}
+      - name: Catalog is in sync with its generator
+        run: |
+          python3 catalog/build_catalog.py
+          git diff --exit-code catalog/ || {
+            echo "::error::catalog/ is stale - run 'make catalog' and commit the result"
+            exit 1
+          }
+
+  accuracy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: "22"}
+      - name: Feature-extraction accuracy benchmark
+        run: node tools/accuracy/run.mjs --check
+
+  python:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: [analysis-service, asr-service]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.11"}
+      - run: pip install -r ${{ matrix.service }}/requirements.txt
+      - run: cd ${{ matrix.service }} && python -m pytest -q
+
+  backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with: {php-version: "8.4", extensions: "pdo_sqlite, zip, intl, bcmath"}
+      - run: cd backend && composer install --no-interaction --prefer-dist
+      - run: cd backend && cp .env.example .env && php artisan key:generate
+      - run: cd backend && RAVAN_CATALOG_PATH=$GITHUB_WORKSPACE/catalog/signal_catalog.json php artisan test
+
+  compose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: docker-compose.yml is valid
+        run: |
+          cp .env.example .env
+          sed -i 's/^RAVAN_DOMAIN=.*/RAVAN_DOMAIN=localhost/' .env
+          for k in APP_KEY DB_PASSWORD DB_ROOT_PASSWORD REDIS_PASSWORD REVERB_APP_ID \
+                   REVERB_APP_KEY REVERB_APP_SECRET LIVEKIT_API_KEY LIVEKIT_API_SECRET \
+                   TURN_SECRET RAVAN_ANALYSIS_TOKEN RAVAN_WEBHOOK_SECRET RAVAN_ASR_TOKEN; do
+            sed -i "s|^$k=.*|$k=ci-placeholder|" .env
+          done
+          docker compose config -q
+          docker compose -f docker-compose.yml -f docker-compose.dev.yml config -q

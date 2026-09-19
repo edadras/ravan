@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ravan.example/schema/signal.schema.json",
+  "title": "Behaviour signal definition",
+  "type": "object",
+  "required": ["id", "group", "tier", "observation", "features", "detector", "quality_gates", "possible_contexts", "clinical_note", "forbidden_labels", "diagnostic_claim", "patient_facing"],
+  "properties": {
+    "id": {"type": "string", "pattern": "^[a-z0-9_]+$"},
+    "group": {"type": "string"},
+    "tier": {"enum": ["quality", "observation", "change", "cluster", "content", "medical", "safety"]},
+    "tier_label": {"$ref": "#/$defs/bilingual"},
+    "observation": {"$ref": "#/$defs/bilingual"},
+    "features": {"type": "array", "items": {"type": "string"}},
+    "detector": {
+      "type": "object",
+      "required": ["type", "window_s", "min_duration_s", "comparison", "cooldown_s", "speaker_state"],
+      "properties": {
+        "type": {"enum": ["sustained", "level_change", "rate_change", "event", "periodicity", "cluster", "content", "quality", "trend"]},
+        "window_s": {"type": "number", "minimum": 0},
+        "min_duration_s": {"type": "number", "minimum": 0},
+        "comparison": {"type": "string"},
+        "threshold": {"type": "number"},
+        "cooldown_s": {"type": "number", "minimum": 0},
+        "direction": {"enum": ["up", "down"]},
+        "frequency_band_hz": {"type": "array", "items": {"type": "number"}, "minItems": 2, "maxItems": 2},
+        "min_count": {"type": "integer"},
+        "member_signals": {"type": "array", "items": {"type": "string"}},
+        "speaker_state": {"enum": ["patient_speaking", "patient_listening", "silence", "any"]}
+      }
+    },
+    "quality_gates": {"type": "object", "additionalProperties": {"type": ["number", "boolean"]}},
+    "possible_contexts": {
+      "type": "array",
+      "items": {"type": "object", "required": ["key", "en", "fa"], "properties": {"key": {"type": "string"}, "en": {"type": "string"}, "fa": {"type": "string"}}}
+    },
+    "clinical_rationale": {"$ref": "#/$defs/bilingual"},
+    "clinical_note": {"$ref": "#/$defs/bilingual"},
+    "forbidden_labels": {"type": "array", "items": {"type": "string"}},
+    "diagnostic_claim": {"type": "null"},
+    "patient_facing": {"const": false}
+  },
+  "$defs": {
+    "bilingual": {"type": "object", "required": ["en", "fa"], "properties": {"en": {"type": "string"}, "fa": {"type": "string"}}}
+  }
+}

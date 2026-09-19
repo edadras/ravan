@@ -1,0 +1,34 @@
+{
+  "schema_version": "2.0.0",
+  "explanation": {
+    "en": "The catalog defines a few hundred named signals. Underneath, every primitive measurement (landmark coordinates, pairwise distances, blendshapes, action units, audio descriptors) is expanded across time windows, statistics, comparison methods and speaker states. Each combination is an individually addressable parameter with its own baseline, threshold and quality gate; the analysis service can materialise any of them on demand by parameter id. Named signals are curated views over this space.",
+    "fa": "کاتالوگ چند صد سیگنال نام‌گذاری‌شده تعریف می‌کند. در زیر آن، هر اندازه‌گیری اولیه (مختصات نقاط، فاصله‌های جفتی، بلندشیپ‌ها، واحدهای حرکتی، توصیف‌گرهای صوتی) روی پنجره‌های زمانی، آماره‌ها، روش‌های مقایسه و وضعیت گوینده گسترش می‌یابد. هر ترکیب یک پارامتر مستقل با خط پایه، آستانه و دروازه کیفیت خودش است؛ سرویس تحلیل می‌تواند هر یک را با شناسه پارامتر به‌صورت درخواستی محاسبه کند. سیگنال‌های نام‌گذاری‌شده نماهای گزینش‌شده روی این فضا هستند."
+  },
+  "per_frame_primitives": {
+    "face_landmark_coordinates": 1434,
+    "face_landmark_pairwise_distances": 114003,
+    "face_landmark_velocities": 1434,
+    "pose_landmark_coordinates": 132,
+    "pose_pairwise_distances": 528,
+    "pose_joint_angles": 24,
+    "hand_landmark_coordinates": 126,
+    "hand_pairwise_distances_per_hand": 420,
+    "hand_face_landmark_distances": 504,
+    "blendshapes": 53,
+    "action_units": 32,
+    "derived_features": 181,
+    "audio_low_level_descriptors": 88,
+    "mfcc_bands": 26
+  },
+  "per_frame_total": 118985,
+  "axes": {
+    "windows": 9,
+    "statistics": 15,
+    "comparisons": 7,
+    "speaker_states": 4,
+    "combinations_per_primitive": 3780
+  },
+  "addressable_parameters_total": 449763300,
+  "addressable_parameters_human": "449.8 million",
+  "note": "Only parameters referenced by enabled signals are computed in real time; the rest are available for offline research with explicit consent."
+}

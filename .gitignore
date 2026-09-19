@@ -1,0 +1,14 @@
+# python
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+# flutter
+flutter_app/.dart_tool/
+flutter_app/build/
+flutter_app/.flutter-plugins*
+flutter_app/.packages
+# misc
+.env
+*.log
+.DS_Store

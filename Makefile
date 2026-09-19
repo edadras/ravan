@@ -8,7 +8,7 @@ PY ?= python3
 COMPOSE ?= docker compose
 DEV := $(COMPOSE) -f docker-compose.yml -f docker-compose.dev.yml
 
-.PHONY: help catalog test test-backend test-analysis test-asr accuracy lint up down logs shell fmt vendor
+.PHONY: help catalog test test-backend test-analysis test-asr accuracy check-env lint up down logs shell fmt vendor
 
 help:
 	@grep -E '^[a-z-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN{FS=":.*?## "}{printf "  \033[36m%-14s\033[0m %s\n", $$1, $$2}'
@@ -16,7 +16,7 @@ help:
 catalog: ## Rebuild the signal catalog and the feature dictionary
 	$(PY) catalog/build_catalog.py
 
-test: test-analysis test-asr test-backend accuracy ## Everything
+test: check-env test-analysis test-asr test-backend accuracy ## Everything
 
 test-backend: ## Laravel feature and unit tests
 	cd backend && RAVAN_CATALOG_PATH=$(CURDIR)/catalog/signal_catalog.json php artisan test
@@ -29,6 +29,9 @@ test-asr: ## Speech service tests
 
 accuracy: ## Feature-extraction accuracy benchmark, failing if a budget is missed
 	node tools/accuracy/run.mjs --check
+
+check-env: ## Verify every documented .env setting reaches the service that reads it
+	$(PY) tools/env/check_wiring.py
 
 vendor: ## Download the MediaPipe runtime and models for local hosting
 	./deploy/fetch-vendor.sh flutter_app/web/vendor

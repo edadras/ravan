@@ -68,7 +68,14 @@ class FasterWhisperBackend:
     def __init__(self) -> None:
         from faster_whisper import WhisperModel  # type: ignore
 
-        self.model = WhisperModel(os.environ.get("RAVAN_ASR_MODEL", "small"), device=os.environ.get("RAVAN_ASR_DEVICE", "cpu"), compute_type=os.environ.get("RAVAN_ASR_COMPUTE", "int8"))
+        # RAVAN_ASR_COMPUTE is the older spelling, kept so an existing .env
+        # does not silently lose its setting.
+        compute = os.environ.get("RAVAN_ASR_COMPUTE_TYPE") or os.environ.get("RAVAN_ASR_COMPUTE") or "int8"
+        self.model = WhisperModel(
+            os.environ.get("RAVAN_ASR_MODEL", "small"),
+            device=os.environ.get("RAVAN_ASR_DEVICE", "cpu"),
+            compute_type=compute,
+        )
 
     def transcribe(self, audio: bytes, filename: str, language: str) -> dict[str, Any]:
         with tempfile.NamedTemporaryFile(suffix=os.path.splitext(filename)[1] or ".webm", delete=True) as f:

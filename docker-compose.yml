@@ -73,6 +73,22 @@ x-backend-env: &backend-env
   RAVAN_WEBRTC_API_KEY: ${LIVEKIT_API_KEY:?LIVEKIT_API_KEY is required}
   RAVAN_WEBRTC_API_SECRET: ${LIVEKIT_API_SECRET:?LIVEKIT_API_SECRET is required}
 
+  # The backend derives the transcription consent text and version from this,
+  # so it must see the same value the asr service runs with.
+  RAVAN_ASR_BACKEND: ${RAVAN_ASR_BACKEND:-faster_whisper}
+
+  RAVAN_ANALYSIS_INGEST_TTL_S: ${RAVAN_ANALYSIS_INGEST_TTL_S:-14400}
+  RAVAN_BASELINE_WINDOW_S: ${RAVAN_BASELINE_WINDOW_S:-300}
+
+  # Changing a consent text without bumping its version would leave patients
+  # consenting to wording they never saw, so the versions are operator-set.
+  RAVAN_CONSENT_VIDEO_VERSION: ${RAVAN_CONSENT_VIDEO_VERSION:-1.0}
+  RAVAN_CONSENT_ANALYSIS_VERSION: ${RAVAN_CONSENT_ANALYSIS_VERSION:-1.0}
+  RAVAN_CONSENT_TRANSCRIPTION_VERSION: ${RAVAN_CONSENT_TRANSCRIPTION_VERSION:-1.0}
+  RAVAN_TERMS_VERSION: ${RAVAN_TERMS_VERSION:-1.0}
+  RAVAN_RETENTION_EVENTS_DAYS: ${RAVAN_RETENTION_EVENTS_DAYS:-365}
+  RAVAN_RETENTION_TRANSCRIPTS_DAYS: ${RAVAN_RETENTION_TRANSCRIPTS_DAYS:-365}
+
   RAVAN_CATALOG_PATH: /catalog/signal_catalog.json
   RAVAN_PAYMENT_GATEWAY: ${RAVAN_PAYMENT_GATEWAY:-sandbox}
   RAVAN_PLATFORM_FEE_RATIO: ${RAVAN_PLATFORM_FEE_RATIO:-0.15}
@@ -187,6 +203,7 @@ services:
       RAVAN_LLM_MODEL: ${RAVAN_LLM_MODEL:-}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL:-https://api.openai.com/v1}
       RAVAN_LOG_LEVEL: ${LOG_LEVEL_SERVICES:-INFO}
 
   asr:
@@ -202,7 +219,9 @@ services:
       RAVAN_ASR_BACKEND: ${RAVAN_ASR_BACKEND:-faster_whisper}
       RAVAN_ASR_MODEL: ${RAVAN_ASR_MODEL:-large-v3}
       RAVAN_ASR_COMPUTE_TYPE: ${RAVAN_ASR_COMPUTE_TYPE:-int8}
+      RAVAN_ASR_DEVICE: ${RAVAN_ASR_DEVICE:-cpu}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL:-https://api.openai.com/v1}
       HF_HOME: /models
       RAVAN_LOG_LEVEL: ${LOG_LEVEL_SERVICES:-INFO}
     volumes:

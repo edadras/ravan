@@ -51,10 +51,17 @@ jobs:
       - run: cd backend && cp .env.example .env && php artisan key:generate
       - run: cd backend && RAVAN_CATALOG_PATH=$GITHUB_WORKSPACE/catalog/signal_catalog.json php artisan test
 
-  compose:
+  deployment:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.11"}
+      - run: pip install pyyaml
+      # A setting wired to the wrong service has no symptom: the service just
+      # uses its default. See tools/env/check_wiring.py.
+      - name: Every documented .env setting reaches the service that reads it
+        run: python3 tools/env/check_wiring.py
       - name: docker-compose.yml is valid
         run: |
           cp .env.example .env

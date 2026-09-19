@@ -8,6 +8,7 @@ import '../../core/api_client.dart';
 import '../../core/auth_store.dart';
 import '../../core/l10n.dart';
 import 'analysis_bridge.dart';
+import 'asr_client.dart';
 import 'consent_dialog.dart';
 import 'webrtc_service.dart';
 
@@ -33,6 +34,9 @@ class _PatientSessionScreenState extends State<PatientSessionScreen> {
   final chat = <Map<String, dynamic>>[];
   final chatCtl = TextEditingController();
   lk.Room? room;
+  AsrClient? asr;
+  final transcript = <Map<String, dynamic>>[];
+  web.MediaStream? mic;
 
   @override
   void initState() {
@@ -59,6 +63,7 @@ class _PatientSessionScreenState extends State<PatientSessionScreen> {
     }
     setState(() => statusKey = 'in_session');
     if (joinInfo!['analysis_allowed'] == true) await _toggleAnalysis(true);
+    if (consented.contains('transcription') || (session!['consents'] as List).any((c) => c['type'] == 'transcription' && c['withdrawn_at'] == null)) await _startAsr();
   }
 
   Future<void> _toggleAnalysis(bool on) async {
@@ -84,6 +89,17 @@ class _PatientSessionScreenState extends State<PatientSessionScreen> {
     }
   }
 
+  Future<void> _startAsr() async {
+    try {
+      mic ??= await web.window.navigator.mediaDevices.getUserMedia(web.MediaStreamConstraints(audio: true.toJS)).toDart;
+      asr = AsrClient(api: api, sessionUuid: widget.uuid, language: context.lang, onSegments: (segs) => setState(() => transcript.addAll(segs.cast<Map<String, dynamic>>())));
+      await asr!.start(mic!);
+      setState(() {});
+    } catch (_) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.t('mic_permission_needed'))));
+    }
+  }
+
   Future<void> _withdraw() async {
     final ok = await showDialog<bool>(
       context: context,
@@ -101,6 +117,7 @@ class _PatientSessionScreenState extends State<PatientSessionScreen> {
   }
 
   Future<void> _end() async {
+    asr?.stop();
     bridge.stop();
     await rtc.disconnect();
     await api.post('/sessions/${widget.uuid}/end');
@@ -109,6 +126,7 @@ class _PatientSessionScreenState extends State<PatientSessionScreen> {
 
   @override
   void dispose() {
+    asr?.stop();
     bridge.stop();
     rtc.disconnect();
     super.dispose();
@@ -153,6 +171,9 @@ class _PatientSessionScreenState extends State<PatientSessionScreen> {
                   TextButton(onPressed: _withdraw, child: Text(context.t('withdraw_consent'))),
                 ] else
                   Text(context.t('analysis_disabled_label')),
+                const Spacer(),
+                Icon(asr?.running == true ? Icons.mic : Icons.mic_off, size: 18, color: asr?.running == true ? Colors.green : Colors.grey),
+                Text(context.t(asr?.running == true ? 'transcription_on' : 'transcription_off'), style: const TextStyle(fontSize: 12)),
               ]),
             ),
           ]),
@@ -160,6 +181,11 @@ class _PatientSessionScreenState extends State<PatientSessionScreen> {
         SizedBox(
           width: 320,
           child: Column(children: [
+            if (transcript.isNotEmpty)
+              SizedBox(height: 160, child: ListView(padding: const EdgeInsets.all(8), children: [
+                Text(context.t('live_transcript'), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                for (final s in transcript.reversed.take(8)) Text('${s['speaker'] == 'clinician' ? context.t('clinician') : context.t('patient')}: ${s['text']}', style: const TextStyle(fontSize: 12)),
+              ])),
             Expanded(
               child: ListView.builder(
                 padding: const EdgeInsets.all(12),

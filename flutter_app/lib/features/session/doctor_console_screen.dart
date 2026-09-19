@@ -1,14 +1,17 @@
 import 'dart:async';
+import 'dart:js_interop';
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:livekit_client/livekit_client.dart' as lk;
+import 'package:web/web.dart' as web;
 
 import '../../core/api_client.dart';
 import '../../core/auth_store.dart';
 import '../../core/l10n.dart';
 import '../../core/models.dart';
 import '../../core/realtime.dart';
+import 'asr_client.dart';
 import 'webrtc_service.dart';
 import 'widgets/event_card.dart';
 
@@ -35,6 +38,8 @@ class _DoctorConsoleScreenState extends State<DoctorConsoleScreen> {
   final noteCtl = TextEditingController();
   final topicCtl = TextEditingController();
   final scroll = ScrollController();
+  AsrClient? asr;
+  int? patientId;
 
   @override
   void initState() {
@@ -46,6 +51,15 @@ class _DoctorConsoleScreenState extends State<DoctorConsoleScreen> {
     api = AuthScope.of(context).api;
     final join = await api.post('/sessions/${widget.uuid}/join') as Map<String, dynamic>;
     analysisEnabled = join['session']['analysis_enabled'] == true;
+    final info = await api.get('/sessions/${widget.uuid}') as Map<String, dynamic>;
+    patientId = info['patient_id'] as int?;
+    if ((info['consents'] as List).any((c) => c['type'] == 'transcription' && c['withdrawn_at'] == null)) {
+      try {
+        final mic = await web.window.navigator.mediaDevices.getUserMedia(web.MediaStreamConstraints(audio: true.toJS)).toDart;
+        asr = AsrClient(api: api, sessionUuid: widget.uuid, language: context.lang, onSegments: (_) {});
+        await asr!.start(mic);
+      } catch (_) {}
+    }
     if (join['webrtc'] != null) {
       room = await rtc.connect(url: join['webrtc']['url'] as String, token: join['webrtc']['token'] as String, video: true);
       room!.addListener(() => setState(() {}));
@@ -106,6 +120,7 @@ class _DoctorConsoleScreenState extends State<DoctorConsoleScreen> {
   }
 
   Future<void> _end() async {
+    asr?.stop();
     poll?.cancel();
     await rtc.disconnect();
     await api.post('/sessions/${widget.uuid}/end');
@@ -114,6 +129,7 @@ class _DoctorConsoleScreenState extends State<DoctorConsoleScreen> {
 
   @override
   void dispose() {
+    asr?.stop();
     poll?.cancel();
     rt?.dispose();
     rtc.disconnect();
@@ -143,6 +159,8 @@ class _DoctorConsoleScreenState extends State<DoctorConsoleScreen> {
               onSubmitted: (v) => api.post('/sessions/${widget.uuid}/analysis/topic', {'topic': v}),
             ),
           ),
+          if (patientId != null) TextButton.icon(onPressed: () => context.push('/records/$patientId?session=${widget.uuid}'), icon: const Icon(Icons.folder_shared_outlined), label: Text(context.t('record'))),
+          Icon(asr?.running == true ? Icons.mic : Icons.mic_off, size: 18, color: asr?.running == true ? Colors.green : Colors.grey),
           const LanguageSwitcher(),
           TextButton.icon(onPressed: _end, icon: const Icon(Icons.call_end, color: Colors.red), label: Text(context.t('end_and_report'))),
         ],

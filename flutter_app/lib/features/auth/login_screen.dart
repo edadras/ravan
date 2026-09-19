@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../core/api_client.dart';
 import '../../core/auth_store.dart';
@@ -14,8 +15,6 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final email = TextEditingController();
   final password = TextEditingController();
-  final name = TextEditingController();
-  bool register = false;
   String? error;
   bool busy = false;
 
@@ -23,11 +22,7 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() { busy = true; error = null; });
     try {
       final auth = AuthScope.of(context);
-      if (register) {
-        await auth.register(name.text.trim(), email.text.trim(), password.text, context.lang);
-      } else {
-        await auth.login(email.text.trim(), password.text);
-      }
+      await auth.login(email.text.trim(), password.text);
     } on ApiException catch (e) {
       setState(() => error = e.errors?.values.first?.first?.toString() ?? e.message);
     } finally {
@@ -48,13 +43,16 @@ class _LoginScreenState extends State<LoginScreen> {
               child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
                 Text(context.t('app_name'), textAlign: TextAlign.center, style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w800)),
                 const SizedBox(height: 16),
-                if (register) TextField(controller: name, decoration: InputDecoration(labelText: context.t('name'))),
                 TextField(controller: email, decoration: InputDecoration(labelText: context.t('email')), keyboardType: TextInputType.emailAddress),
                 TextField(controller: password, decoration: InputDecoration(labelText: context.t('password')), obscureText: true, onSubmitted: (_) => _submit()),
                 const SizedBox(height: 16),
                 if (error != null) Text(error!, style: const TextStyle(color: Colors.red)),
-                FilledButton(onPressed: busy ? null : _submit, child: Text(context.t(register ? 'register' : 'login'))),
-                TextButton(onPressed: () => setState(() => register = !register), child: Text(context.t(register ? 'have_account' : 'no_account'))),
+                FilledButton(onPressed: busy ? null : _submit, child: Text(context.t('login'))),
+                TextButton(onPressed: () => context.go('/register'), child: Text(context.t('no_account'))),
+                Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                  TextButton(onPressed: () => context.go('/reset'), child: Text(context.t('forgot_password'), style: const TextStyle(fontSize: 12))),
+                  TextButton(onPressed: () => context.go('/reset/code-login'), child: Text(context.t('login_with_code'), style: const TextStyle(fontSize: 12))),
+                ]),
                 Text(context.t('clinician_accounts_note'), style: const TextStyle(fontSize: 11, color: Colors.black54), textAlign: TextAlign.center),
               ]),
             ),

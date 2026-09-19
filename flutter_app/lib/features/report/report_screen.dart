@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../core/api_client.dart';
 import '../../core/auth_store.dart';
@@ -108,6 +109,11 @@ class _ReportScreenState extends State<ReportScreen> {
         TextField(controller: summaryCtl, maxLines: 6, decoration: InputDecoration(labelText: context.t('final_summary'), border: const OutlineInputBorder())),
         const SizedBox(height: 12),
         Row(children: [
+          TextButton.icon(onPressed: () async {
+              final info = await api.get('/sessions/${widget.uuid}') as Map<String, dynamic>;
+              if (context.mounted) context.push('/records/${info['patient_id']}?session=${widget.uuid}');
+            }, icon: const Icon(Icons.psychology_alt_outlined), label: Text(context.t('ai_panel'))),
+          const SizedBox(width: 8),
           OutlinedButton(onPressed: () => _submit(false), child: Text(context.t('save_version'))),
           const SizedBox(width: 8),
           FilledButton(onPressed: () => _submit(true), child: Text(context.t('finalize'))),

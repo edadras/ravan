@@ -1,6 +1,8 @@
 import 'package:flutter/widgets.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'l10n_extra.dart';
+
 /// Supported UI languages. fa is RTL; en and tr are LTR.
 const supportedLangs = ['fa', 'en', 'tr'];
 const langNames = {'fa': 'فارسی', 'en': 'English', 'tr': 'Türkçe'};
@@ -40,7 +42,7 @@ extension L10nX on BuildContext {
 
   /// Translate a key; `{name}` placeholders are replaced from [args].
   String t(String key, [Map<String, Object?> args = const {}]) {
-    var s = _strings[lang]?[key] ?? _strings['en']?[key] ?? key;
+    var s = _strings[lang]?[key] ?? stringsExtra[lang]?[key] ?? _strings['en']?[key] ?? stringsExtra['en']?[key] ?? key;
     args.forEach((k, v) => s = s.replaceAll('{$k}', '$v'));
     return s;
   }

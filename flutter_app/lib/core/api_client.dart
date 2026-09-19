@@ -36,6 +36,10 @@ class ApiClient {
     return _handle(await http.post(Uri.parse('$baseUrl$path'), headers: _headers, body: jsonEncode(body ?? {})));
   }
 
+  Future<dynamic> patch(String path, [Object? body]) async {
+    return _handle(await http.patch(Uri.parse('$baseUrl$path'), headers: _headers, body: jsonEncode(body ?? {})));
+  }
+
   dynamic _handle(http.Response r) {
     final data = r.body.isEmpty ? null : jsonDecode(utf8.decode(r.bodyBytes));
     if (r.statusCode >= 200 && r.statusCode < 300) return data;

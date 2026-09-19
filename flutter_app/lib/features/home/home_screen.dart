@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:web/web.dart' as web;
 
 import '../../core/auth_store.dart';
 import '../../core/l10n.dart';
@@ -34,6 +35,9 @@ class _HomeScreenState extends State<HomeScreen> {
       appBar: AppBar(title: Text('${context.t('app_name')} — ${auth.user?.name ?? ''}'), actions: [
         if (auth.isAdmin) TextButton(onPressed: () => context.go('/admin/clinicians'), child: Text(context.t('verify_clinicians'))),
         if (!auth.isClinician && !auth.isAdmin) TextButton(onPressed: () => context.go('/clinicians'), child: Text(context.t('book'))),
+        if (auth.isPatient) TextButton(onPressed: () => context.go('/record'), child: Text(context.t('my_record'))),
+        IconButton(tooltip: context.t('messages'), onPressed: () => context.go('/messages'), icon: const Icon(Icons.chat_bubble_outline)),
+        IconButton(tooltip: context.t('profile'), onPressed: () => context.go('/profile'), icon: const Icon(Icons.person_outline)),
         const LanguageSwitcher(),
         IconButton(onPressed: auth.logout, icon: const Icon(Icons.logout)),
       ]),
@@ -52,6 +56,14 @@ class _HomeScreenState extends State<HomeScreen> {
                 title: Text('$other — ${DateFormat.yMd(context.lang).add_Hm().format(DateTime.parse(a['starts_at'] as String).toLocal())}'),
                 subtitle: Text('${context.t('mode_${a['mode']}')} · ${context.t('status')}: ${context.t('status_${a['status']}')}'),
                 trailing: Wrap(spacing: 8, children: [
+                  if (auth.isPatient && a['status'] == 'pending')
+                    OutlinedButton(onPressed: () async {
+                      final res = await auth.api.post('/appointments/${a['id']}/pay') as Map<String, dynamic>;
+                      final url = res['redirect_url'] as String;
+                      if (url.contains('/api/payments/')) { await auth.api.get(url.substring(url.indexOf('/payments/'))); _load(); } else { web.window.open(url, '_self'); }
+                    }, child: Text(context.t('pay_now'))),
+                  if (auth.isClinician)
+                    TextButton(onPressed: () => context.go('/records/${a['patient_id']}${session != null ? '?session=${session['uuid']}' : ''}'), child: Text(context.t('record'))),
                   if (auth.isClinician && a['status'] == 'pending')
                     OutlinedButton(onPressed: () async { await auth.api.post('/appointments/${a['id']}/confirm'); _load(); }, child: Text(context.t('confirm'))),
                   if (canJoin)

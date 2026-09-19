@@ -13,6 +13,7 @@ class AuthStore extends ChangeNotifier {
   bool get isLoggedIn => user != null;
   bool get isClinician => user?.role == 'clinician';
   bool get isAdmin => user?.role == 'admin';
+  bool get isPatient => user?.role == 'patient';
 
   Future<void> restore() async {
     final prefs = await SharedPreferences.getInstance();
@@ -38,6 +39,14 @@ class AuthStore extends ChangeNotifier {
 
   Future<void> register(String name, String email, String password, String locale) async {
     final res = await api.post('/auth/register', {'name': name, 'email': email, 'password': password, 'locale': locale}) as Map<String, dynamic>;
+    api.token = res['token'] as String;
+    (await SharedPreferences.getInstance()).setString('token', api.token!);
+    user = CurrentUser.fromJson(res['user'] as Map<String, dynamic>);
+    notifyListeners();
+  }
+
+  /// Store a token+user pair returned by any auth endpoint.
+  Future<void> adopt(Map<String, dynamic> res) async {
     api.token = res['token'] as String;
     (await SharedPreferences.getInstance()).setString('token', api.token!);
     user = CurrentUser.fromJson(res['user'] as Map<String, dynamic>);

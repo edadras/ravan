@@ -17,7 +17,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    depends_on: [mysql, redis, analysis]
+    depends_on: [mysql, redis, analysis, asr]
     environment:
       APP_ENV: local
       APP_URL: http://localhost:8000
@@ -43,6 +43,10 @@ services:
       RAVAN_WEBRTC_API_KEY: devkey
       RAVAN_WEBRTC_API_SECRET: devsecretdevsecretdevsecretdevsecret
       RAVAN_CATALOG_PATH: /catalog/signal_catalog.json
+      RAVAN_ASR_URL: http://asr:8200
+      RAVAN_ASR_TOKEN: change-me-asr-token
+      RAVAN_PAYMENT_GATEWAY: sandbox
+      MAIL_MAILER: log
     volumes: ["./catalog:/catalog:ro"]
     ports: ["8000:8000"]
     command: sh -c "php artisan migrate --force --seed && php artisan serve --host=0.0.0.0 --port=8000"
@@ -66,8 +70,36 @@ services:
     environment:
       RAVAN_ANALYSIS_TOKEN: change-me-analysis-token
       RAVAN_WEBHOOK_SECRET: change-me-webhook-secret
-      RAVAN_LLM_PROVIDER: none
+      RAVAN_LLM_PROVIDER: ${RAVAN_LLM_PROVIDER:-none}   # openai | anthropic | none
+      RAVAN_LLM_MODEL: ${RAVAN_LLM_MODEL:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
     ports: ["8100:8100"]
+
+  asr:
+    build:
+      context: .
+      dockerfile: asr-service/Dockerfile
+    environment:
+      RAVAN_ASR_TOKEN: change-me-asr-token
+      RAVAN_ASR_BACKEND: ${RAVAN_ASR_BACKEND:-fake}     # openai | faster_whisper | fake
+      RAVAN_ASR_MODEL: ${RAVAN_ASR_MODEL:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+    ports: ["8200:8200"]
+
+  scheduler:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    depends_on: [backend]
+    environment:
+      DB_CONNECTION: mysql
+      DB_HOST: mysql
+      DB_DATABASE: ravan
+      DB_USERNAME: ravan
+      DB_PASSWORD: ravan
+      MAIL_MAILER: log
+    command: php artisan schedule:work
 
   livekit:
     image: livekit/livekit-server:latest

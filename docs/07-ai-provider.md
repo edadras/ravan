@@ -1,14 +1,15 @@
 # ۰۷ — ارائه‌دهنده هوش مصنوعی (مدل زبانی)
 
-مدل زبانی **فقط** برای دو کار اختیاری استفاده می‌شود:
+مدل زبانی برای این کارها استفاده می‌شود (همه اختیاری، همه با نگهبان و تأیید درمانگر):
 1. پیش‌نویس خلاصه پایان جلسه (`analysis-service/app/report.py`).
-2. (نقشه راه) قضاوت کم‌اطمینان «تغییر موضوع در پاسخ» و بخش‌بندی موضوعی متن.
+2. دستیار بالینی (`analysis-service/app/assist.py`): فرمول‌بندی و فرضیه‌های افتراقی، جمله‌بندی تحلیل پرسش/پاسخ، پرسش از دستیار — جزئیات در `docs/10-clinical-record-and-ai.md`.
+3. تشخیص گفتار در سرویس جداگانه `asr-service/` با `RAVAN_ASR_BACKEND=openai` و `RAVAN_ASR_MODEL`.
 
 هیچ‌کدام از آشکارسازهای رفتاری به مدل زبانی وابسته نیستند؛ سامانه بدون هیچ مدل زبانی کاملاً کار می‌کند (`RAVAN_LLM_PROVIDER=none` → `NullProvider` با قالب قطعی).
 
 ## پیکربندی
 ```
-RAVAN_LLM_PROVIDER=none | anthropic | openai
+RAVAN_LLM_PROVIDER=none | openai | anthropic
 RAVAN_LLM_MODEL=<شناسه مدل انتخابی شما>
 ANTHROPIC_API_KEY=… / OPENAI_API_KEY=…
 ```
